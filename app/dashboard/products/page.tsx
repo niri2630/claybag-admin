@@ -244,7 +244,7 @@ export default function ProductsPage() {
           {/* Additional Settings (Images, Variants, Discounts) - Only if selected! */}
           {selected && (
             <AnimatePresence>
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
+                <motion.div key="gallery" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
                   <div className="flex items-center justify-between mb-6">
                      <h3 className="font-headline font-bold text-xl text-on-surface flex items-center gap-3"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-2xl">imagesmode</span> Artifact Gallery</h3>
                      <input ref={imageInput} type="file" accept="image/*" onChange={uploadImage} className="hidden" />
@@ -268,7 +268,7 @@ export default function ProductsPage() {
                 </motion.div>
 
                 {form.has_variants && (
-                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
+                  <motion.div key="variants" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
                     <h3 className="font-headline font-bold text-xl text-on-surface flex items-center gap-3 mb-6"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-2xl">category</span> Variations Matrix</h3>
                     
                     <div className="flex flex-wrap items-center gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
@@ -305,7 +305,7 @@ export default function ProductsPage() {
                   </motion.div>
                 )}
 
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
+                <motion.div key="discounts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
                   <h3 className="font-headline font-bold text-xl text-on-surface flex items-center gap-3 mb-3"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-2xl">loyalty</span> Scale Mechanics</h3>
                   <p className="text-on-surface-variant text-sm font-medium mb-6">Incentivize bulk curation with algorithmic discounting.</p>
                   

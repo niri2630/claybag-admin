@@ -1,7 +1,87 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { api, Category, Product } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
+
+const VARIANT_CLASS_OPTIONS = [
+  "size", "color", "material", "paper", "finish", "capacity", "width", "pages",
+  "fold", "feature", "attachment", "thickness", "clip", "nib", "tip", "ink",
+  "engraving", "screen", "frame", "led", "pockets", "window", "box", "power",
+  "style", "shape", "closure", "diameter", "length", "format", "ink_color",
+  "accessory", "cap",
+];
+
+function VariantClassPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const filtered = VARIANT_CLASS_OPTIONS.filter((o) =>
+    o.includes(search.toLowerCase())
+  );
+
+  return (
+    <div ref={ref} className="relative min-w-[160px]">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-full focus:outline-none flex items-center justify-between gap-2 text-left"
+      >
+        <span className={value ? "capitalize" : "text-on-surface/50"}>{value || "Class (e.g. size)"}</span>
+        <span className="material-symbols-outlined text-[18px]">{open ? "expand_less" : "expand_more"}</span>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 w-64 bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="p-2 border-b border-outline-variant/30">
+            <input
+              autoFocus
+              placeholder="Search or type custom..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && search.trim()) {
+                  onChange(search.trim().toLowerCase());
+                  setSearch("");
+                  setOpen(false);
+                }
+              }}
+              className="bg-surface-container border border-outline-variant/30 rounded-lg px-3 py-2 text-sm text-on-surface w-full focus:outline-none"
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => { onChange(opt); setSearch(""); setOpen(false); }}
+                className={`w-full text-left px-4 py-2.5 text-sm capitalize hover:bg-secondary-container/30 transition-colors ${opt === value ? "bg-secondary-container/20 font-bold text-primary" : "text-on-surface"}`}
+              >
+                {opt}
+              </button>
+            ))}
+            {filtered.length === 0 && search.trim() && (
+              <button
+                type="button"
+                onClick={() => { onChange(search.trim().toLowerCase()); setSearch(""); setOpen(false); }}
+                className="w-full text-left px-4 py-2.5 text-sm text-primary hover:bg-secondary-container/30 transition-colors"
+              >
+                + Add &quot;{search.trim().toLowerCase()}&quot;
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -167,7 +247,15 @@ export default function ProductsPage() {
                       {isSelected && (
                          <motion.div layoutId="product-selector" className="absolute left-0 top-0 bottom-0 w-1.5 bg-secondary-container" />
                       )}
-                      <p className="font-headline font-bold text-on-surface line-clamp-1">{p.name}</p>
+                      <div className="flex items-center justify-between">
+                        <p className="font-headline font-bold text-on-surface line-clamp-1 flex-1">{p.name}</p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); deleteProduct(p.id); }}
+                          className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg hover:bg-error-container text-error/40 hover:text-error transition-colors ml-2"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="font-label font-bold text-sm text-on-surface-variant">₹{p.base_price.toLocaleString()}</span>
                         <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md ${p.is_active ? "bg-surface-container-low text-on-surface" : "bg-error-container/50 text-error"}`}>
@@ -272,9 +360,7 @@ export default function ProductsPage() {
                     <h3 className="font-headline font-bold text-xl text-on-surface flex items-center gap-3 mb-6"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-2xl">category</span> Variations Matrix</h3>
                     
                     <div className="flex flex-wrap items-center gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
-                      <select value={vForm.variant_type} onChange={e => setVForm(f => ({ ...f, variant_type: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface min-w-[120px] focus:outline-none">
-                        <option value="size">Size</option><option value="color">Color</option><option value="material">Material</option>
-                      </select>
+                      <VariantClassPicker value={vForm.variant_type} onChange={(v) => setVForm(f => ({ ...f, variant_type: v }))} />
                       <input placeholder="Trait (e.g. Cobalt, L)" value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface flex-1 min-w-[150px] focus:outline-none" />
                       <input type="number" placeholder="Price Offset (₹)" value={vForm.price_adjustment || ""} onChange={e => setVForm(f => ({ ...f, price_adjustment: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
                       <input type="number" placeholder="Inventory" value={vForm.stock || ""} onChange={e => setVForm(f => ({ ...f, stock: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-24 focus:outline-none" />

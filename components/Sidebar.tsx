@@ -8,6 +8,7 @@ const nav = [
   { href: "/dashboard/categories", label: "Categories", icon: "category" },
   { href: "/dashboard/products", label: "Products", icon: "inventory_2" },
   { href: "/dashboard/orders", label: "Orders", icon: "shopping_cart" },
+  { href: "/dashboard/reviews", label: "Reviews", icon: "rate_review" },
   { href: "/dashboard/users", label: "Users", icon: "group" },
 ];
 

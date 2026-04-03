@@ -82,10 +82,16 @@ export const api = {
   getOrders: () => request<Order[]>("/orders"),
   updateOrderStatus: (id: number, status: string, note?: string) =>
     request(`/orders/${id}/status`, { method: "PUT", body: JSON.stringify({ status, note }) }),
+
+  // Reviews
+  getReviews: () => request<Review[]>("/reviews/all"),
+  approveReview: (id: number) => request<Review>(`/reviews/${id}/approve`, { method: "PUT" }),
+  rejectReview: (id: number) => request<Review>(`/reviews/${id}/reject`, { method: "PUT" }),
+  deleteReview: (id: number) => request(`/reviews/${id}`, { method: "DELETE" }),
 };
 
 // Types
-export interface Category { id: number; name: string; slug: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }
+export interface Category { id: number; name: string; slug: string; icon: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }
 export interface SubCategory { id: number; name: string; slug: string; category_id: number; image_url?: string; is_active: boolean; }
 export interface Product { id: number; name: string; description?: string; subcategory_id: number; base_price: number; is_active: boolean; has_variants: boolean; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
 export interface ProductImage { id: number; image_url: string; is_primary: boolean; sort_order: number; }
@@ -95,3 +101,4 @@ export interface User { id: number; name: string; email: string; phone?: string;
 export interface Order { id: number; user_id: number; status: string; total_amount: number; shipping_name: string; shipping_phone: string; shipping_address: string; shipping_city: string; shipping_pincode: string; notes?: string; created_at: string; items: OrderItem[]; tracking: TrackingEntry[]; }
 export interface OrderItem { id: number; product_id: number; variant_id?: number; quantity: number; unit_price: number; total_price: number; discount_applied: number; }
 export interface TrackingEntry { id: number; status: string; note?: string; created_at: string; }
+export interface Review { id: number; user_id: number; product_id: number; rating: number; comment?: string; is_approved: boolean; created_at: string; user_name: string; product_name: string; }

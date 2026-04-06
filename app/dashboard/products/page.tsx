@@ -93,7 +93,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false });
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
 
@@ -175,8 +175,24 @@ export default function ProductsPage() {
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false }); }
-  function startEdit(p: Product) { setSelected(p); setEditMode(true); setForm({ name: p.name, description: p.description || "", subcategory_id: p.subcategory_id, base_price: p.base_price, is_active: p.is_active, has_variants: p.has_variants }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false }); }
+  function startEdit(p: Product) {
+    setSelected(p);
+    setEditMode(true);
+    setForm({
+      name: p.name,
+      description: p.description || "",
+      specifications: p.specifications || "",
+      use_cases: p.use_cases || "",
+      materials: p.materials || "",
+      delivery_info: p.delivery_info || "",
+      subcategory_id: p.subcategory_id,
+      base_price: p.base_price,
+      is_active: p.is_active,
+      has_variants: p.has_variants,
+      is_featured: p.is_featured || false,
+    });
+  }
 
   const allSubs = categories.flatMap(c => c.subcategories.map(s => ({ ...s, catName: c.name })));
 
@@ -300,11 +316,35 @@ export default function ProductsPage() {
                 </div>
                 
                 <div className="col-span-2">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Curatorial Description</label>
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Description</label>
                   <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={4}
-                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Craft a compelling narrative..." />
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Product description for customers..." />
                 </div>
-                
+
+                <div className="col-span-2">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Specifications</label>
+                  <textarea value={form.specifications} onChange={e => setForm(f => ({ ...f, specifications: e.target.value }))} rows={3}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Material: 100% Cotton&#10;Weight: 180 GSM&#10;Print: Screen/DTG" />
+                </div>
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Use Cases</label>
+                  <textarea value={form.use_cases} onChange={e => setForm(f => ({ ...f, use_cases: e.target.value }))} rows={3}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Team branding, events, gifting..." />
+                </div>
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Materials & Build</label>
+                  <textarea value={form.materials} onChange={e => setForm(f => ({ ...f, materials: e.target.value }))} rows={3}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Cotton, polyester, bio-wash..." />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Delivery Notes</label>
+                  <textarea value={form.delivery_info} onChange={e => setForm(f => ({ ...f, delivery_info: e.target.value }))} rows={2}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Custom branding adds 7-14 days..." />
+                </div>
+
                 <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
                   <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Base Valuation (₹)</label>
                   <div className="relative">
@@ -323,6 +363,11 @@ export default function ProductsPage() {
                   <label className="flex items-center justify-between cursor-pointer group">
                     <span className="font-label font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Contains Variations (Size/Color)</span>
                     <input type="checkbox" checked={form.has_variants} onChange={e => setForm(f => ({ ...f, has_variants: e.target.checked }))} className="w-5 h-5 accent-secondary-container rounded" />
+                  </label>
+                  <div className="h-px bg-outline-variant/20 w-full" />
+                  <label className="flex items-center justify-between cursor-pointer group">
+                    <span className="font-label font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Hot Seller (Featured on Homepage)</span>
+                    <input type="checkbox" checked={form.is_featured} onChange={e => setForm(f => ({ ...f, is_featured: e.target.checked }))} className="w-5 h-5 accent-secondary-container rounded" />
                   </label>
                 </div>
               </div>

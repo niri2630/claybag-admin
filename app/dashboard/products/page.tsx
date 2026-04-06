@@ -197,7 +197,7 @@ export default function ProductsPage() {
   const allSubs = categories.flatMap(c => c.subcategories.map(s => ({ ...s, catName: c.name })));
 
   return (
-    <div className="pb-12 max-w-[1400px] mx-auto h-[calc(100vh-80px)] flex flex-col">
+    <div className="pb-12 max-w-[1400px] mx-auto min-h-[calc(100vh-80px)] flex flex-col">
       <div className="flex items-center justify-between mb-8 shrink-0">
         <div>
            <h2 className="text-4xl font-headline font-bold text-on-surface tracking-tight mb-2">Inventory HQ</h2>
@@ -222,7 +222,7 @@ export default function ProductsPage() {
 
       <div className="flex gap-8 flex-1 min-h-0">
         {/* Product List Sidebar */}
-        <div className="w-[320px] flex-shrink-0 flex flex-col min-h-0 h-full">
+        <div className="w-[320px] flex-shrink-0 flex flex-col min-h-0 max-h-[calc(100vh-200px)] sticky top-4 self-start">
           <div className="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant/30 p-4 mb-4 shrink-0">
             <div className="relative">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">filter_list</span>
@@ -287,7 +287,7 @@ export default function ProductsPage() {
         </div>
 
         {/* Product Editor Space */}
-        <div className="flex-1 flex flex-col min-h-0 h-full overflow-y-auto pr-2 pb-6 space-y-6 hide-scrollbar">
+        <div className="flex-1 flex flex-col pb-6 space-y-6">
           {(editMode || !selected) && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 overflow-hidden">
               <div className="px-8 py-6 border-b border-outline-variant/20 bg-surface-container-low flex items-center gap-3">
@@ -372,6 +372,17 @@ export default function ProductsPage() {
                 </div>
               </div>
             </motion.div>
+          )}
+
+          {/* Helpful hint when creating new product */}
+          {!selected && !editMode && (
+            <div className="bg-secondary-container/10 border border-secondary-container/30 rounded-2xl p-5 flex items-start gap-3">
+              <span className="material-symbols-outlined text-secondary-container">info</span>
+              <div>
+                <p className="font-headline font-bold text-sm text-on-surface mb-1">After saving the product, you can:</p>
+                <p className="font-body text-xs text-on-surface-variant">Upload images, add variants (size/color), and configure bulk discount slabs. Click <strong>Forge Artifact</strong> first to save the basic info.</p>
+              </div>
+            </div>
           )}
 
           {/* Additional Settings (Images, Variants, Discounts) - Only if selected! */}

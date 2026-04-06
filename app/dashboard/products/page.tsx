@@ -96,6 +96,7 @@ export default function ProductsPage() {
   const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false });
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Variant form
   const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", price_adjustment: 0, stock: 0, sku: "" });
@@ -223,11 +224,31 @@ export default function ProductsPage() {
       <div className="flex gap-8 flex-1 min-h-0">
         {/* Product List Sidebar */}
         <div className="w-[320px] flex-shrink-0 flex flex-col min-h-0 max-h-[calc(100vh-200px)] sticky top-4 self-start">
-          <div className="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant/30 p-4 mb-4 shrink-0">
+          <div className="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant/30 p-4 mb-4 shrink-0 space-y-3">
+            {/* Search */}
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search products..."
+                className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-11 pr-10 py-3 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              )}
+            </div>
+            {/* Category filter */}
             <div className="relative">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">filter_list</span>
-              <select 
-                value={filterSub || ""} 
+              <select
+                value={filterSub || ""}
                 onChange={e => setFilterSub(e.target.value ? Number(e.target.value) : undefined)}
                 className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium text-on-surface appearance-none focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
               >
@@ -245,7 +266,7 @@ export default function ProductsPage() {
               </div>
             ) : (
               <div className="flex flex-col gap-2 p-2">
-                {products.map((p, idx) => {
+                {products.filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase())).map((p, idx) => {
                   const isSelected = selected?.id === p.id;
                   return (
                     <motion.div 

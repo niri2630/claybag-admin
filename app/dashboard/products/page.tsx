@@ -431,7 +431,7 @@ export default function ProductsPage() {
                     {selected.images.length === 0 && <p className="text-on-surface-variant font-medium text-sm italic w-full text-center py-6 bg-surface-container border border-dashed border-outline-variant rounded-2xl">No media present. Add visuals to showcase this artifact.</p>}
                     {selected.images.map(img => (
                       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={img.id} className="relative w-32 h-32 rounded-2xl border-2 border-outline-variant/30 overflow-hidden shadow-sm">
-                        <img src={`${BASE_URL}${img.image_url}`} alt="" className="w-full h-full object-cover" />
+                        <img src={img.image_url.startsWith("http") ? img.image_url : `${BASE_URL}${img.image_url}`} alt="" className="w-full h-full object-cover" />
                         <button onClick={() => deleteImage(img.id)} className="absolute top-1.5 right-1.5 w-7 h-7 bg-error text-on-error rounded-full flex items-center justify-center shadow-md hover:bg-error/80 transition-colors z-10">
                           <span className="material-symbols-outlined text-[14px]">close</span>
                         </button>

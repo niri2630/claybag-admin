@@ -65,14 +65,22 @@ export const api = {
   createProduct: (data: Partial<Product>) => request<Product>("/products", { method: "POST", body: JSON.stringify(data) }),
   updateProduct: (id: number, data: Partial<Product>) => request<Product>(`/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteProduct: (id: number) => request(`/products/${id}`, { method: "DELETE" }),
-  uploadProductImage: (productId: number, file: File, isPrimary = false) => {
+  uploadProductImage: (productId: number, file: File, isPrimary = false, variantId?: number) => {
     const fd = new FormData(); fd.append("file", file);
-    return upload(`/uploads/products/${productId}/images?is_primary=${isPrimary}`, fd);
+    const params = new URLSearchParams({ is_primary: String(isPrimary) });
+    if (variantId) params.set("variant_id", String(variantId));
+    return upload(`/uploads/products/${productId}/images?${params.toString()}`, fd);
   },
   uploadProductImagesBatch: (productId: number, files: File[]) => {
     const fd = new FormData();
     files.forEach((f) => fd.append("files", f));
     return upload<ProductImage[]>(`/uploads/products/${productId}/images/batch`, fd);
+  },
+  setImageVariant: (productId: number, imageId: number, variantId: number | null) => {
+    const url = variantId === null
+      ? `/uploads/products/${productId}/images/${imageId}/variant`
+      : `/uploads/products/${productId}/images/${imageId}/variant?variant_id=${variantId}`;
+    return request<ProductImage>(url, { method: "PUT" });
   },
   deleteProductImage: (productId: number, imageId: number) => request(`/uploads/products/${productId}/images/${imageId}`, { method: "DELETE" }),
   addVariant: (productId: number, data: Partial<Variant>) => request<Variant>(`/products/${productId}/variants`, { method: "POST", body: JSON.stringify(data) }),
@@ -99,7 +107,7 @@ export const api = {
 export interface Category { id: number; name: string; slug: string; icon: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }
 export interface SubCategory { id: number; name: string; slug: string; category_id: number; image_url?: string; is_active: boolean; }
 export interface Product { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; subcategory_id: number; base_price: number; is_active: boolean; has_variants: boolean; is_featured: boolean; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
-export interface ProductImage { id: number; image_url: string; is_primary: boolean; sort_order: number; }
+export interface ProductImage { id: number; image_url: string; is_primary: boolean; sort_order: number; variant_id?: number | null; }
 export interface Variant { id: number; variant_type: string; variant_value: string; price_adjustment: number; stock: number; sku?: string; }
 export interface DiscountSlab { id: number; min_quantity: number; discount_percentage: number; }
 export interface User { id: number; name: string; email: string; phone?: string; is_admin: boolean; is_active: boolean; created_at: string; }

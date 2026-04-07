@@ -97,6 +97,8 @@ export default function ProductsPage() {
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
+  // Pre-tag uploaded images with this color variant id (null = no tag)
+  const [uploadColorVariantId, setUploadColorVariantId] = useState<number | null>(null);
 
   // Variant form
   const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", price_adjustment: 0, stock: 0, sku: "" });
@@ -140,13 +142,18 @@ export default function ProductsPage() {
   async function uploadImage(e: React.ChangeEvent<HTMLInputElement>) {
     if (!selected || !e.target.files?.length) return;
     const files = Array.from(e.target.files);
+    const tagVariant = uploadColorVariantId;
     try {
       if (files.length === 1) {
-        // Single upload (preserves existing is_primary logic)
-        await api.uploadProductImage(selected.id, files[0], selected.images.length === 0);
+        // Single upload, optionally pre-tagged with the selected color
+        await api.uploadProductImage(selected.id, files[0], selected.images.length === 0, tagVariant ?? undefined);
       } else {
         // Batch upload — first becomes primary if none exists
-        await api.uploadProductImagesBatch(selected.id, files);
+        const uploaded = await api.uploadProductImagesBatch(selected.id, files);
+        // If a color was pre-selected, tag every uploaded image to that variant
+        if (tagVariant && Array.isArray(uploaded)) {
+          await Promise.all(uploaded.map(img => api.setImageVariant(selected.id, img.id, tagVariant).catch(() => null)));
+        }
       }
       const p = await api.getProduct(selected.id);
       setSelected(p);
@@ -419,25 +426,68 @@ export default function ProductsPage() {
           {selected && (
             <AnimatePresence>
                 <motion.div key="gallery" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
                      <h3 className="font-headline font-bold text-xl text-on-surface flex items-center gap-3"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-2xl">imagesmode</span> Artifact Gallery</h3>
                      <input ref={imageInput} type="file" accept="image/*" multiple onChange={uploadImage} className="hidden" />
-                     <button onClick={() => imageInput.current?.click()} className="flex items-center gap-2 font-label font-bold text-sm bg-surface-container hover:bg-surface-container-high text-on-surface px-5 py-2.5 rounded-xl border border-outline-variant/30 transition-all">
-                       <span className="material-symbols-outlined text-[18px]">upload</span> Upload Media
-                     </button>
+                     <div className="flex items-center gap-2 flex-wrap">
+                       {(selected.variants || []).filter(v => v.variant_type.toLowerCase() === "color").length > 0 && (
+                         <select
+                           value={uploadColorVariantId || ""}
+                           onChange={e => setUploadColorVariantId(e.target.value ? Number(e.target.value) : null)}
+                           className="bg-surface-container border border-outline-variant/30 rounded-xl px-3 py-2.5 text-xs font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary-container max-w-[180px]"
+                           title="Tag the next upload(s) to this color"
+                         >
+                           <option value="">No color tag</option>
+                           {(selected.variants || []).filter(v => v.variant_type.toLowerCase() === "color").map(v => (
+                             <option key={v.id} value={v.id}>Tag as: {v.variant_value}</option>
+                           ))}
+                         </select>
+                       )}
+                       <button onClick={() => imageInput.current?.click()} className="flex items-center gap-2 font-label font-bold text-sm bg-surface-container hover:bg-surface-container-high text-on-surface px-5 py-2.5 rounded-xl border border-outline-variant/30 transition-all">
+                         <span className="material-symbols-outlined text-[18px]">upload</span> Upload Media
+                       </button>
+                     </div>
                   </div>
                   
+                  {(selected.variants || []).filter(v => v.variant_type.toLowerCase() === "color").length > 0 && (
+                    <p className="text-xs text-on-surface-variant mb-3 italic">Tip: tag images to a color so the website swaps the gallery when shoppers click that color.</p>
+                  )}
+
                   <div className="flex flex-wrap gap-4">
                     {selected.images.length === 0 && <p className="text-on-surface-variant font-medium text-sm italic w-full text-center py-6 bg-surface-container border border-dashed border-outline-variant rounded-2xl">No media present. Add visuals to showcase this artifact.</p>}
-                    {selected.images.map(img => (
-                      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={img.id} className="relative w-32 h-32 rounded-2xl border-2 border-outline-variant/30 overflow-hidden shadow-sm">
-                        <img src={img.image_url.startsWith("http") ? img.image_url : `${BASE_URL}${img.image_url}`} alt="" className="w-full h-full object-cover" />
-                        <button onClick={() => deleteImage(img.id)} className="absolute top-1.5 right-1.5 w-7 h-7 bg-error text-on-error rounded-full flex items-center justify-center shadow-md hover:bg-error/80 transition-colors z-10">
-                          <span className="material-symbols-outlined text-[14px]">close</span>
-                        </button>
-                        {img.is_primary && <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold uppercase tracking-wider bg-secondary-container text-on-secondary-container px-2 py-1 rounded-md shadow-md backdrop-blur-md">Primary</span>}
-                      </motion.div>
-                    ))}
+                    {selected.images.map(img => {
+                      const colorVariants = (selected.variants || []).filter(v => v.variant_type.toLowerCase() === "color");
+                      return (
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={img.id} className="relative w-36 rounded-2xl border-2 border-outline-variant/30 overflow-hidden shadow-sm bg-surface-container-lowest">
+                          <div className="relative w-full h-32">
+                            <img src={img.image_url.startsWith("http") ? img.image_url : `${BASE_URL}${img.image_url}`} alt="" className="w-full h-full object-cover" />
+                            <button onClick={() => deleteImage(img.id)} className="absolute top-1.5 right-1.5 w-7 h-7 bg-error text-on-error rounded-full flex items-center justify-center shadow-md hover:bg-error/80 transition-colors z-10">
+                              <span className="material-symbols-outlined text-[14px]">close</span>
+                            </button>
+                            {img.is_primary && <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold uppercase tracking-wider bg-secondary-container text-on-secondary-container px-2 py-1 rounded-md shadow-md backdrop-blur-md">Primary</span>}
+                          </div>
+                          {colorVariants.length > 0 && (
+                            <select
+                              value={img.variant_id || ""}
+                              onChange={async e => {
+                                const v = e.target.value ? Number(e.target.value) : null;
+                                try {
+                                  await api.setImageVariant(selected.id, img.id, v);
+                                  const p = await api.getProduct(selected.id);
+                                  setSelected(p);
+                                } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error"); }
+                              }}
+                              className="w-full px-2 py-2 text-[11px] font-medium bg-surface-container border-t border-outline-variant/30 text-on-surface focus:outline-none cursor-pointer hover:bg-surface-container-high transition-colors"
+                            >
+                              <option value="">— No color —</option>
+                              {colorVariants.map(v => (
+                                <option key={v.id} value={v.id}>{v.variant_value}</option>
+                              ))}
+                            </select>
+                          )}
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </motion.div>
 

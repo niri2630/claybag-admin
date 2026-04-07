@@ -138,11 +138,20 @@ export default function ProductsPage() {
   }
 
   async function uploadImage(e: React.ChangeEvent<HTMLInputElement>) {
-    if (!selected || !e.target.files?.[0]) return;
+    if (!selected || !e.target.files?.length) return;
+    const files = Array.from(e.target.files);
     try {
-      await api.uploadProductImage(selected.id, e.target.files[0], selected.images.length === 0);
+      if (files.length === 1) {
+        // Single upload (preserves existing is_primary logic)
+        await api.uploadProductImage(selected.id, files[0], selected.images.length === 0);
+      } else {
+        // Batch upload — first becomes primary if none exists
+        await api.uploadProductImagesBatch(selected.id, files);
+      }
       const p = await api.getProduct(selected.id);
       setSelected(p);
+      // Reset input so re-uploading the same file triggers onChange
+      e.target.value = "";
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
@@ -412,7 +421,7 @@ export default function ProductsPage() {
                 <motion.div key="gallery" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
                   <div className="flex items-center justify-between mb-6">
                      <h3 className="font-headline font-bold text-xl text-on-surface flex items-center gap-3"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-2xl">imagesmode</span> Artifact Gallery</h3>
-                     <input ref={imageInput} type="file" accept="image/*" onChange={uploadImage} className="hidden" />
+                     <input ref={imageInput} type="file" accept="image/*" multiple onChange={uploadImage} className="hidden" />
                      <button onClick={() => imageInput.current?.click()} className="flex items-center gap-2 font-label font-bold text-sm bg-surface-container hover:bg-surface-container-high text-on-surface px-5 py-2.5 rounded-xl border border-outline-variant/30 transition-all">
                        <span className="material-symbols-outlined text-[18px]">upload</span> Upload Media
                      </button>

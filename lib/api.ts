@@ -22,7 +22,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json();
 }
 
-async function upload(path: string, formData: FormData): Promise<unknown> {
+async function upload<T = unknown>(path: string, formData: FormData): Promise<T> {
   const token = getToken();
   const res = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
@@ -33,7 +33,7 @@ async function upload(path: string, formData: FormData): Promise<unknown> {
     const err = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(err.detail || "Upload failed");
   }
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 export const api = {
@@ -68,6 +68,11 @@ export const api = {
   uploadProductImage: (productId: number, file: File, isPrimary = false) => {
     const fd = new FormData(); fd.append("file", file);
     return upload(`/uploads/products/${productId}/images?is_primary=${isPrimary}`, fd);
+  },
+  uploadProductImagesBatch: (productId: number, files: File[]) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    return upload<ProductImage[]>(`/uploads/products/${productId}/images/batch`, fd);
   },
   deleteProductImage: (productId: number, imageId: number) => request(`/uploads/products/${productId}/images/${imageId}`, { method: "DELETE" }),
   addVariant: (productId: number, data: Partial<Variant>) => request<Variant>(`/products/${productId}/variants`, { method: "POST", body: JSON.stringify(data) }),

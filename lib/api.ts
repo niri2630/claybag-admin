@@ -99,6 +99,6 @@ export interface Variant { id: number; variant_type: string; variant_value: stri
 export interface DiscountSlab { id: number; min_quantity: number; discount_percentage: number; }
 export interface User { id: number; name: string; email: string; phone?: string; is_admin: boolean; is_active: boolean; created_at: string; }
 export interface Order { id: number; user_id: number; status: string; total_amount: number; shipping_name: string; shipping_phone: string; shipping_address: string; shipping_city: string; shipping_pincode: string; notes?: string; created_at: string; items: OrderItem[]; tracking: TrackingEntry[]; }
-export interface OrderItem { id: number; product_id: number; variant_id?: number; quantity: number; unit_price: number; total_price: number; discount_applied: number; }
+export interface OrderItem { id: number; product_id: number; product_name?: string; product_slug?: string; product_image?: string; variant_id?: number; variant_label?: string; quantity: number; unit_price: number; total_price: number; discount_applied: number; }
 export interface TrackingEntry { id: number; status: string; note?: string; created_at: string; }
 export interface Review { id: number; user_id: number; product_id: number; rating: number; comment?: string; is_approved: boolean; created_at: string; user_name: string; product_name: string; }

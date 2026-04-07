@@ -156,18 +156,47 @@ export default function OrdersPage() {
                   </div>
                 )}
 
-                <h4 className="font-headline font-bold text-xl text-on-surface mb-4 flex items-center gap-2"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-xl">inventory_2</span> Manifesto</h4>
+                <h4 className="font-headline font-bold text-xl text-on-surface mb-4 flex items-center gap-2"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-xl">inventory_2</span> Items in Order</h4>
                 <div className="overflow-hidden rounded-2xl border border-outline-variant/30">
                   <table className="w-full text-left">
                     <thead className="bg-surface-container">
-                      <tr><th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Artifact Code</th><th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Vol</th><th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Base Rate</th><th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Markdown</th><th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant text-right">Ext. Price</th></tr>
+                      <tr>
+                        <th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Product</th>
+                        <th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant text-center">Qty</th>
+                        <th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Unit Price</th>
+                        <th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Discount</th>
+                        <th className="px-5 py-4 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant text-right">Subtotal</th>
+                      </tr>
                     </thead>
                     <tbody className="divide-y divide-outline-variant/20">
                       {selected.items.map(item => (
                         <tr key={item.id} className="hover:bg-surface-container-low transition-colors">
-                          <td className="px-5 py-4 font-medium text-on-surface">#{item.product_id} {item.variant_id ? <span className="text-primary text-xs ml-1 bg-surface-container-highest px-2 py-0.5 rounded-md">V-{item.variant_id}</span> : ""}</td>
-                          <td className="px-5 py-4 text-on-surface font-bold">{item.quantity}</td>
-                          <td className="px-5 py-4 text-on-surface-variant font-medium">₹{item.unit_price}</td>
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              {item.product_image ? (
+                                <img
+                                  src={item.product_image.startsWith("http") ? item.product_image : `${process.env.NEXT_PUBLIC_API_URL || ""}${item.product_image}`}
+                                  alt={item.product_name || `#${item.product_id}`}
+                                  className="w-14 h-14 object-cover rounded-lg bg-surface-container border border-outline-variant/30 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-14 h-14 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+                                  <span className="material-symbols-outlined text-on-surface-variant text-xl">image</span>
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="font-medium text-on-surface text-sm leading-tight">
+                                  {item.product_name || `Product #${item.product_id}`}
+                                </p>
+                                {item.variant_label && (
+                                  <p className="text-xs text-on-surface-variant mt-0.5">{item.variant_label}</p>
+                                )}
+                                <p className="text-[10px] text-on-surface-variant/70 font-mono mt-1">ID: {item.product_id}{item.variant_id ? ` · V${item.variant_id}` : ""}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-5 py-4 text-on-surface font-bold text-center">{item.quantity}</td>
+                          <td className="px-5 py-4 text-on-surface-variant font-medium">₹{item.unit_price.toFixed(2)}</td>
                           <td className="px-5 py-4 text-primary font-bold">{item.discount_applied > 0 ? `-${item.discount_applied}%` : "—"}</td>
                           <td className="px-5 py-4 font-headline font-bold text-right">₹{item.total_price.toFixed(2)}</td>
                         </tr>

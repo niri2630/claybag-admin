@@ -15,8 +15,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "ClayBag Admin | The Architectural Curator",
-  description: "Curating The Startup Artifacts.",
+  title: "ClayBag Admin | Brand Building Partner",
+  description: "Manage products, orders, and branding for ClayBag.",
 };
 
 export default function RootLayout({

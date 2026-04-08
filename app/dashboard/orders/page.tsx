@@ -98,7 +98,7 @@ export default function OrdersPage() {
                   >
                     {isSelected && <motion.div layoutId="order-selector" className="absolute left-0 top-0 bottom-0 w-1.5 bg-secondary-container" />}
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-headline font-bold text-on-surface text-lg">#{o.id}</span>
+                      <span className="font-headline font-bold text-on-surface text-lg">{o.order_number ?? `#${o.id}`}</span>
                       <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-1 rounded-md ${STATUS_COLOR[o.status] || ""}`}>{o.status}</span>
                     </div>
                     <p className="text-sm font-medium text-on-surface-variant mb-1 flex items-center gap-2"><span className="material-symbols-outlined text-[16px] opacity-70">person</span> {o.shipping_name}</p>
@@ -128,7 +128,7 @@ export default function OrdersPage() {
               <div className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
                 <div className="flex items-start justify-between mb-8 pb-8 border-b border-outline-variant/30">
                   <div>
-                    <h3 className="font-headline font-bold text-3xl text-on-surface mb-2">Transaction #{selected.id}</h3>
+                    <h3 className="font-headline font-bold text-3xl text-on-surface mb-2">Transaction {selected.order_number ?? `#${selected.id}`}</h3>
                     <p className="text-sm font-medium text-on-surface-variant flex items-center gap-2">
                        <span className="material-symbols-outlined text-[18px]">calendar_today</span> 
                        {new Date(selected.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}

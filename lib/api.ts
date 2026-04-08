@@ -85,7 +85,7 @@ export const api = {
   deleteProductImage: (productId: number, imageId: number) => request(`/uploads/products/${productId}/images/${imageId}`, { method: "DELETE" }),
   addVariant: (productId: number, data: Partial<Variant>) => request<Variant>(`/products/${productId}/variants`, { method: "POST", body: JSON.stringify(data) }),
   deleteVariant: (productId: number, variantId: number) => request(`/products/${productId}/variants/${variantId}`, { method: "DELETE" }),
-  addDiscountSlab: (productId: number, data: { min_quantity: number; discount_percentage: number }) => request<DiscountSlab>(`/products/${productId}/discounts`, { method: "POST", body: JSON.stringify(data) }),
+  addDiscountSlab: (productId: number, data: { min_quantity: number; price_per_unit?: number; discount_percentage?: number }) => request<DiscountSlab>(`/products/${productId}/discounts`, { method: "POST", body: JSON.stringify(data) }),
   deleteDiscountSlab: (productId: number, slabId: number) => request(`/products/${productId}/discounts/${slabId}`, { method: "DELETE" }),
 
   // Users
@@ -109,9 +109,9 @@ export interface SubCategory { id: number; name: string; slug: string; category_
 export interface Product { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; subcategory_id: number; base_price: number; is_active: boolean; has_variants: boolean; is_featured: boolean; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
 export interface ProductImage { id: number; image_url: string; is_primary: boolean; sort_order: number; variant_id?: number | null; }
 export interface Variant { id: number; variant_type: string; variant_value: string; price_adjustment: number; stock: number; sku?: string; }
-export interface DiscountSlab { id: number; min_quantity: number; discount_percentage: number; }
+export interface DiscountSlab { id: number; min_quantity: number; price_per_unit?: number | null; discount_percentage?: number | null; }
 export interface User { id: number; name: string; email: string; phone?: string; is_admin: boolean; is_active: boolean; created_at: string; }
-export interface Order { id: number; user_id: number; status: string; total_amount: number; shipping_name: string; shipping_phone: string; shipping_address: string; shipping_city: string; shipping_pincode: string; notes?: string; created_at: string; items: OrderItem[]; tracking: TrackingEntry[]; }
+export interface Order { id: number; order_number?: string; user_id: number; status: string; total_amount: number; shipping_name: string; shipping_phone: string; shipping_address: string; shipping_city: string; shipping_pincode: string; notes?: string; created_at: string; items: OrderItem[]; tracking: TrackingEntry[]; }
 export interface OrderItem { id: number; product_id: number; product_name?: string; product_slug?: string; product_image?: string; variant_id?: number; variant_label?: string; quantity: number; unit_price: number; total_price: number; discount_applied: number; }
 export interface TrackingEntry { id: number; status: string; note?: string; created_at: string; }
 export interface Review { id: number; user_id: number; product_id: number; rating: number; comment?: string; is_approved: boolean; created_at: string; user_name: string; product_name: string; }

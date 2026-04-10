@@ -93,6 +93,10 @@ export const api = {
   // Users
   getUsers: () => request<User[]>("/users"),
 
+  // Company Profiles
+  getCompanyProfiles: () => request<CompanyProfile[]>("/company-profile/all"),
+  getUserCompanyProfile: (userId: number) => request<CompanyProfile>(`/company-profile/user/${userId}`),
+
   // Orders
   getOrders: () => request<Order[]>("/orders"),
   updateOrderStatus: (id: number, status: string, note?: string) =>
@@ -117,3 +121,4 @@ export interface Order { id: number; order_number?: string; user_id: number; sta
 export interface OrderItem { id: number; product_id: number; product_name?: string; product_slug?: string; product_image?: string; variant_id?: number; variant_label?: string; quantity: number; unit_price: number; total_price: number; discount_applied: number; }
 export interface TrackingEntry { id: number; status: string; note?: string; created_at: string; }
 export interface Review { id: number; user_id: number; product_id: number; rating: number; comment?: string; is_approved: boolean; created_at: string; user_name: string; product_name: string; }
+export interface CompanyProfile { id: number; user_id: number; company_name: string; business_type: string; gst_number?: string; registered_address?: string; contact_person?: string; description?: string; created_at: string; updated_at?: string; }

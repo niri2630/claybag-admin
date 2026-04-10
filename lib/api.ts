@@ -87,6 +87,7 @@ export const api = {
   deleteVariant: (productId: number, variantId: number) => request(`/products/${productId}/variants/${variantId}`, { method: "DELETE" }),
   addDiscountSlab: (productId: number, data: { min_quantity: number; price_per_unit?: number; discount_percentage?: number }) => request<DiscountSlab>(`/products/${productId}/discounts`, { method: "POST", body: JSON.stringify(data) }),
   deleteDiscountSlab: (productId: number, slabId: number) => request(`/products/${productId}/discounts/${slabId}`, { method: "DELETE" }),
+  setPrimaryImage: (productId: number, imageId: number) => request<void>(`/products/${productId}/images/${imageId}/primary`, { method: "PUT" }),
 
   // Users
   getUsers: () => request<User[]>("/users"),
@@ -106,7 +107,7 @@ export const api = {
 // Types
 export interface Category { id: number; name: string; slug: string; icon: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }
 export interface SubCategory { id: number; name: string; slug: string; category_id: number; image_url?: string; is_active: boolean; }
-export interface Product { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; subcategory_id: number; base_price: number; is_active: boolean; has_variants: boolean; is_featured: boolean; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
+export interface Product { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; min_order_qty?: number | null; branding_info?: string; size_chart_url?: string; subcategory_id: number; base_price: number; is_active: boolean; has_variants: boolean; is_featured: boolean; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
 export interface ProductImage { id: number; image_url: string; is_primary: boolean; sort_order: number; variant_id?: number | null; }
 export interface Variant { id: number; variant_type: string; variant_value: string; price_adjustment: number; stock: number; sku?: string; }
 export interface DiscountSlab { id: number; min_quantity: number; price_per_unit?: number | null; discount_percentage?: number | null; }

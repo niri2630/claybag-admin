@@ -93,7 +93,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, branding_info: "", size_chart_url: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false });
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
@@ -201,7 +201,7 @@ export default function ProductsPage() {
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, branding_info: "", size_chart_url: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -212,6 +212,9 @@ export default function ProductsPage() {
       use_cases: p.use_cases || "",
       materials: p.materials || "",
       delivery_info: p.delivery_info || "",
+      min_order_qty: p.min_order_qty ?? null,
+      branding_info: p.branding_info || "",
+      size_chart_url: p.size_chart_url || "",
       subcategory_id: p.subcategory_id,
       base_price: p.base_price,
       is_active: p.is_active,
@@ -391,6 +394,24 @@ export default function ProductsPage() {
                     className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Custom branding adds 7-14 days..." />
                 </div>
 
+                <div className="col-span-2 md:col-span-1">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Minimum Order Qty</label>
+                  <input type="number" min="1" value={form.min_order_qty ?? ""} onChange={e => setForm(f => ({ ...f, min_order_qty: e.target.value === "" ? null : Number(e.target.value) }))}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Leave empty for no MOQ" />
+                </div>
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Size Chart URL</label>
+                  <input type="text" value={form.size_chart_url} onChange={e => setForm(f => ({ ...f, size_chart_url: e.target.value }))}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Paste URL to size chart image (for apparel)" />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">BRANDING & PRINTING</label>
+                  <textarea value={form.branding_info} onChange={e => setForm(f => ({ ...f, branding_info: e.target.value }))} rows={3}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Describe printing methods available (e.g., Screen Printing, Embroidery, UV Print...)" />
+                </div>
+
                 <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
                   <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Base Valuation (₹)</label>
                   <div className="relative">
@@ -473,7 +494,20 @@ export default function ProductsPage() {
                             <button onClick={() => deleteImage(img.id)} className="absolute top-1.5 right-1.5 w-7 h-7 bg-error text-on-error rounded-full flex items-center justify-center shadow-md hover:bg-error/80 transition-colors z-10">
                               <span className="material-symbols-outlined text-[14px]">close</span>
                             </button>
-                            {img.is_primary && <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold uppercase tracking-wider bg-secondary-container text-on-secondary-container px-2 py-1 rounded-md shadow-md backdrop-blur-md">Primary</span>}
+                            {img.is_primary ? (
+                              <span className="absolute bottom-1.5 left-1.5 text-[9px] font-bold uppercase tracking-wider bg-secondary-container text-on-secondary-container px-2 py-1 rounded-md shadow-md backdrop-blur-md">Primary</span>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await api.setPrimaryImage(selected.id, img.id);
+                                    const p = await api.getProduct(selected.id);
+                                    setSelected(p);
+                                  } catch (err: unknown) { setError(err instanceof Error ? err.message : "Error"); }
+                                }}
+                                className="absolute bottom-1.5 left-1.5 text-[9px] font-bold uppercase tracking-wider bg-surface-container/80 text-on-surface px-2 py-1 rounded-md shadow-md backdrop-blur-md hover:bg-primary hover:text-on-primary transition-colors"
+                              >Set as Primary</button>
+                            )}
                           </div>
                           {colorVariants.length > 0 && (
                             <select

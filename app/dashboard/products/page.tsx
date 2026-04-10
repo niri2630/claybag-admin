@@ -102,8 +102,8 @@ export default function ProductsPage() {
 
   // Variant form
   const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", price_adjustment: 0, stock: 0, sku: "" });
-  // Discount form — new model: flat price per unit above min_quantity
-  const [dForm, setDForm] = useState({ min_quantity: 0, price_per_unit: 0 });
+  // Discount form — new model: flat price per unit above min_quantity, optionally per-variant
+  const [dForm, setDForm] = useState({ variant_id: null as number | null, min_quantity: 0, price_per_unit: 0 });
 
   async function load() {
     setLoading(true);
@@ -184,10 +184,11 @@ export default function ProductsPage() {
     if (!selected) return;
     try {
       await api.addDiscountSlab(selected.id, {
+        variant_id: dForm.variant_id || undefined,
         min_quantity: dForm.min_quantity,
         price_per_unit: dForm.price_per_unit,
       });
-      setDForm({ min_quantity: 0, price_per_unit: 0 });
+      setDForm({ variant_id: null, min_quantity: 0, price_per_unit: 0 });
       const p = await api.getProduct(selected.id);
       setSelected(p);
     } catch (e: unknown) {
@@ -575,16 +576,32 @@ export default function ProductsPage() {
                   <p className="text-on-surface-variant text-sm font-medium mb-2">Set a flat per-piece price that kicks in once the order quantity reaches a threshold.</p>
                   <p className="text-on-surface-variant text-xs font-medium mb-6 italic">Example: Min Qty = 25 and Price = ₹340 means &quot;orders of 25 or more units pay ₹340 per piece&quot;.</p>
 
-                  <div className="flex items-center gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30 max-w-xl">
-                    <div className="flex-1 flex flex-col gap-1">
+                  <div className="flex flex-wrap items-end gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
+                    {/* Variant filter — only show if product has variants */}
+                    {selected.has_variants && selected.variants && selected.variants.length > 0 && (
+                      <div className="flex-1 min-w-[140px] flex flex-col gap-1">
+                        <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">Applies To</label>
+                        <select
+                          value={dForm.variant_id ?? ""}
+                          onChange={e => setDForm(f => ({ ...f, variant_id: e.target.value === "" ? null : Number(e.target.value) }))}
+                          className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface font-medium focus:outline-none"
+                        >
+                          <option value="">All Variants</option>
+                          {selected.variants.map(v => (
+                            <option key={v.id} value={v.id}>{v.variant_type}: {v.variant_value}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-[100px] flex flex-col gap-1">
                       <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">Min Quantity</label>
                       <input type="number" min="1" value={dForm.min_quantity || ""} onChange={e => setDForm(f => ({ ...f, min_quantity: Number(e.target.value) }))} placeholder="e.g. 25" className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface font-medium focus:outline-none" />
                     </div>
-                    <div className="flex-1 flex flex-col gap-1">
+                    <div className="flex-1 min-w-[100px] flex flex-col gap-1">
                       <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">Price Per Unit (₹)</label>
                       <input type="number" min="0" step="0.01" value={dForm.price_per_unit || ""} onChange={e => setDForm(f => ({ ...f, price_per_unit: Number(e.target.value) }))} placeholder="e.g. 340" className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface font-medium focus:outline-none" />
                     </div>
-                    <div className="pt-5">
+                    <div>
                       <button onClick={addDiscount} disabled={!dForm.min_quantity || !dForm.price_per_unit} className="bg-primary text-on-primary font-label font-bold px-5 py-3 rounded-xl text-sm hover:bg-inverse-surface transition-colors flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"><span className="material-symbols-outlined text-[18px]">add</span> Add Slab</button>
                     </div>
                   </div>
@@ -593,15 +610,25 @@ export default function ProductsPage() {
                     <table className="w-full text-left">
                       <thead className="bg-surface-container">
                         <tr>
+                          <th className="px-6 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Applies To</th>
                           <th className="px-6 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Threshold</th>
                           <th className="px-6 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Price Per Unit</th>
                           <th className="px-6 py-3"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-outline-variant/20">
-                        {selected.discount_slabs.length === 0 && <tr><td colSpan={3} className="px-6 py-6 text-center text-on-surface-variant font-medium text-sm">No bulk pricing slabs set. Orders use the base price.</td></tr>}
-                        {selected.discount_slabs.sort((a, b) => a.min_quantity - b.min_quantity).map(s => (
+                        {selected.discount_slabs.length === 0 && <tr><td colSpan={4} className="px-6 py-6 text-center text-on-surface-variant font-medium text-sm">No bulk pricing slabs set. Orders use the base price.</td></tr>}
+                        {selected.discount_slabs.sort((a, b) => a.min_quantity - b.min_quantity).map(s => {
+                          const variantLabel = s.variant_id
+                            ? (() => { const v = selected.variants?.find(v => v.id === s.variant_id); return v ? `${v.variant_type}: ${v.variant_value}` : `#${s.variant_id}`; })()
+                            : "All Variants";
+                          return (
                           <tr key={s.id} className="hover:bg-surface-container-low transition-colors">
+                            <td className="px-6 py-4 text-sm text-on-surface-variant">
+                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${s.variant_id ? "bg-secondary-container text-on-secondary-container" : "bg-surface-container text-on-surface-variant"}`}>
+                                {variantLabel}
+                              </span>
+                            </td>
                             <td className="px-6 py-4 font-headline font-bold text-on-surface">{s.min_quantity}+ units</td>
                             <td className="px-6 py-4 font-headline font-bold text-primary">
                               {s.price_per_unit != null
@@ -612,7 +639,7 @@ export default function ProductsPage() {
                             </td>
                             <td className="px-6 py-4 text-right"><button onClick={() => deleteDiscount(s.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-error hover:bg-error-container transition-colors"><span className="material-symbols-outlined text-[16px]">delete</span></button></td>
                           </tr>
-                        ))}
+                        );})}
                       </tbody>
                     </table>
                   </div>

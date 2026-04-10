@@ -402,9 +402,50 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="col-span-2 md:col-span-1">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Size Chart URL</label>
-                  <input type="text" value={form.size_chart_url} onChange={e => setForm(f => ({ ...f, size_chart_url: e.target.value }))}
-                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Paste URL to size chart image (for apparel)" />
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">
+                    <span className="material-symbols-outlined text-[14px] align-middle mr-1">straighten</span>
+                    Size Chart (Apparel)
+                  </label>
+                  {form.size_chart_url ? (
+                    <div className="relative group w-full">
+                      <img src={form.size_chart_url} alt="Size Chart" className="w-full max-h-48 object-contain rounded-2xl border border-outline-variant/50 bg-surface-container" />
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, size_chart_url: "" }))}
+                        className="absolute top-2 right-2 w-7 h-7 rounded-full bg-error text-on-error flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-outline-variant/50 rounded-2xl cursor-pointer hover:border-secondary-container hover:bg-secondary-container/5 transition-all">
+                      <span className="material-symbols-outlined text-2xl text-on-surface-variant mb-1">upload</span>
+                      <span className="text-xs text-on-surface-variant font-medium">Upload Size Chart</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file || !selected) return;
+                          try {
+                            const fd = new FormData();
+                            fd.append("file", file);
+                            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/uploads/size-chart/${selected.id}`, {
+                              method: "POST",
+                              headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+                              body: fd,
+                            });
+                            if (!res.ok) throw new Error("Upload failed");
+                            const data = await res.json();
+                            setForm(f => ({ ...f, size_chart_url: data.url }));
+                          } catch (err) {
+                            alert("Failed to upload size chart");
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
 
                 <div className="col-span-2">

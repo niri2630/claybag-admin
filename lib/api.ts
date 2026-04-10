@@ -86,6 +86,7 @@ export const api = {
   addVariant: (productId: number, data: Partial<Variant>) => request<Variant>(`/products/${productId}/variants`, { method: "POST", body: JSON.stringify(data) }),
   deleteVariant: (productId: number, variantId: number) => request(`/products/${productId}/variants/${variantId}`, { method: "DELETE" }),
   addDiscountSlab: (productId: number, data: { variant_id?: number; min_quantity: number; price_per_unit?: number; discount_percentage?: number }) => request<DiscountSlab>(`/products/${productId}/discounts`, { method: "POST", body: JSON.stringify(data) }),
+  updateDiscountSlab: (productId: number, slabId: number, data: { variant_id?: number | null; min_quantity?: number; price_per_unit?: number }) => request<DiscountSlab>(`/products/${productId}/discounts/${slabId}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteDiscountSlab: (productId: number, slabId: number) => request(`/products/${productId}/discounts/${slabId}`, { method: "DELETE" }),
   setPrimaryImage: (productId: number, imageId: number) => request<void>(`/uploads/products/${productId}/images/${imageId}/primary`, { method: "PUT" }),
 

@@ -104,6 +104,8 @@ export default function ProductsPage() {
   const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", price_adjustment: 0, stock: 0, sku: "" });
   // Discount form — new model: flat price per unit above min_quantity, optionally per-variant
   const [dForm, setDForm] = useState({ variant_id: null as number | null, min_quantity: 0, price_per_unit: 0 });
+  // Inline editing state for discount slabs: { [slabId]: { variant_id, min_quantity, price_per_unit } }
+  const [editingSlabs, setEditingSlabs] = useState<Record<number, { variant_id: number | null; min_quantity: number; price_per_unit: number }>>({});
 
   async function load() {
     setLoading(true);
@@ -200,6 +202,30 @@ export default function ProductsPage() {
     if (!selected) return;
     try { await api.deleteDiscountSlab(selected.id, sid); const p = await api.getProduct(selected.id); setSelected(p); }
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
+  }
+
+  function startEditSlab(s: { id: number; variant_id?: number | null; min_quantity: number; price_per_unit?: number | null }) {
+    setEditingSlabs(prev => ({ ...prev, [s.id]: { variant_id: s.variant_id ?? null, min_quantity: s.min_quantity, price_per_unit: s.price_per_unit ?? 0 } }));
+  }
+
+  function cancelEditSlab(sid: number) {
+    setEditingSlabs(prev => { const n = { ...prev }; delete n[sid]; return n; });
+  }
+
+  async function saveEditSlab(sid: number) {
+    if (!selected) return;
+    const data = editingSlabs[sid];
+    if (!data) return;
+    try {
+      await api.updateDiscountSlab(selected.id, sid, {
+        variant_id: data.variant_id,
+        min_quantity: data.min_quantity,
+        price_per_unit: data.price_per_unit,
+      });
+      cancelEditSlab(sid);
+      const p = await api.getProduct(selected.id);
+      setSelected(p);
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
   function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, branding_info: "", size_chart_url: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false }); }
@@ -680,25 +706,66 @@ export default function ProductsPage() {
                       <tbody className="divide-y divide-outline-variant/20">
                         {selected.discount_slabs.length === 0 && <tr><td colSpan={4} className="px-6 py-6 text-center text-on-surface-variant font-medium text-sm">No bulk pricing slabs set. Orders use the base price.</td></tr>}
                         {selected.discount_slabs.sort((a, b) => a.min_quantity - b.min_quantity).map(s => {
-                          const variantLabel = s.variant_id
-                            ? (() => { const v = selected.variants?.find(v => v.id === s.variant_id); return v ? `${v.variant_type}: ${v.variant_value}` : `#${s.variant_id}`; })()
-                            : "All Variants";
+                          const isEditing = !!editingSlabs[s.id];
+                          const editData = editingSlabs[s.id];
+                          const variantLabel = (vid: number | null | undefined) => {
+                            if (!vid) return "All Variants";
+                            const v = selected.variants?.find(v => v.id === vid);
+                            return v ? `${v.variant_type}: ${v.variant_value}` : `#${vid}`;
+                          };
                           return (
                           <tr key={s.id} className="hover:bg-surface-container-low transition-colors">
                             <td className="px-6 py-4 text-sm text-on-surface-variant">
-                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${s.variant_id ? "bg-secondary-container text-on-secondary-container" : "bg-surface-container text-on-surface-variant"}`}>
-                                {variantLabel}
-                              </span>
+                              {isEditing && selected.has_variants && selected.variants && selected.variants.length > 0 ? (
+                                <select
+                                  value={editData.variant_id ?? ""}
+                                  onChange={e => setEditingSlabs(prev => ({ ...prev, [s.id]: { ...prev[s.id], variant_id: e.target.value === "" ? null : Number(e.target.value) } }))}
+                                  className="bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-2 py-1.5 text-xs font-medium focus:outline-none w-full"
+                                >
+                                  <option value="">All Variants</option>
+                                  {selected.variants.map(v => (
+                                    <option key={v.id} value={v.id}>{v.variant_type}: {v.variant_value}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold ${s.variant_id ? "bg-secondary-container text-on-secondary-container" : "bg-surface-container text-on-surface-variant"}`}>
+                                  {variantLabel(s.variant_id)}
+                                </span>
+                              )}
                             </td>
-                            <td className="px-6 py-4 font-headline font-bold text-on-surface">{s.min_quantity}+ units</td>
-                            <td className="px-6 py-4 font-headline font-bold text-primary">
-                              {s.price_per_unit != null
-                                ? `₹${s.price_per_unit.toLocaleString("en-IN")} / pc`
-                                : s.discount_percentage != null
-                                  ? `${s.discount_percentage}% off (legacy)`
-                                  : "—"}
+                            <td className="px-6 py-4">
+                              {isEditing ? (
+                                <input type="number" min="1" value={editData.min_quantity || ""} onChange={e => setEditingSlabs(prev => ({ ...prev, [s.id]: { ...prev[s.id], min_quantity: Number(e.target.value) } }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-3 py-1.5 text-sm font-bold w-24 focus:outline-none" />
+                              ) : (
+                                <span className="font-headline font-bold text-on-surface">{s.min_quantity}+ units</span>
+                              )}
                             </td>
-                            <td className="px-6 py-4 text-right"><button onClick={() => deleteDiscount(s.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-error hover:bg-error-container transition-colors"><span className="material-symbols-outlined text-[16px]">delete</span></button></td>
+                            <td className="px-6 py-4">
+                              {isEditing ? (
+                                <input type="number" min="0" step="0.01" value={editData.price_per_unit || ""} onChange={e => setEditingSlabs(prev => ({ ...prev, [s.id]: { ...prev[s.id], price_per_unit: Number(e.target.value) } }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-3 py-1.5 text-sm font-bold w-28 focus:outline-none" />
+                              ) : (
+                                <span className="font-headline font-bold text-primary">
+                                  {s.price_per_unit != null
+                                    ? `₹${s.price_per_unit.toLocaleString("en-IN")} / pc`
+                                    : s.discount_percentage != null
+                                      ? `${s.discount_percentage}% off (legacy)`
+                                      : "—"}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 text-right flex items-center justify-end gap-1.5">
+                              {isEditing ? (
+                                <>
+                                  <button onClick={() => saveEditSlab(s.id)} className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-green-700 hover:bg-green-200 transition-colors" title="Save"><span className="material-symbols-outlined text-[16px]">check</span></button>
+                                  <button onClick={() => cancelEditSlab(s.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors" title="Cancel"><span className="material-symbols-outlined text-[16px]">close</span></button>
+                                </>
+                              ) : (
+                                <>
+                                  <button onClick={() => startEditSlab(s)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-secondary-container transition-colors" title="Edit"><span className="material-symbols-outlined text-[16px]">edit</span></button>
+                                  <button onClick={() => deleteDiscount(s.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-error hover:bg-error-container transition-colors" title="Delete"><span className="material-symbols-outlined text-[16px]">delete</span></button>
+                                </>
+                              )}
+                            </td>
                           </tr>
                         );})}
                       </tbody>

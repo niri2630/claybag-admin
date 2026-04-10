@@ -418,33 +418,53 @@ export default function ProductsPage() {
                       </button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-outline-variant/50 rounded-2xl cursor-pointer hover:border-secondary-container hover:bg-secondary-container/5 transition-all">
-                      <span className="material-symbols-outlined text-2xl text-on-surface-variant mb-1">upload</span>
-                      <span className="text-xs text-on-surface-variant font-medium">Upload Size Chart</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file || !selected) return;
-                          try {
-                            const fd = new FormData();
-                            fd.append("file", file);
-                            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/uploads/size-chart/${selected.id}`, {
-                              method: "POST",
-                              headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
-                              body: fd,
-                            });
-                            if (!res.ok) throw new Error("Upload failed");
-                            const data = await res.json();
-                            setForm(f => ({ ...f, size_chart_url: data.url }));
-                          } catch (err) {
-                            alert("Failed to upload size chart");
-                          }
-                        }}
-                      />
-                    </label>
+                    <div className="flex flex-col gap-2">
+                      <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-outline-variant/50 rounded-2xl cursor-pointer hover:border-secondary-container hover:bg-secondary-container/5 transition-all">
+                        <span className="material-symbols-outlined text-xl text-on-surface-variant mb-1">upload</span>
+                        <span className="text-[11px] text-on-surface-variant font-medium">Upload Image</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file || !selected) return;
+                            try {
+                              const fd = new FormData();
+                              fd.append("file", file);
+                              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/uploads/size-chart/${selected.id}`, {
+                                method: "POST",
+                                headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+                                body: fd,
+                              });
+                              if (!res.ok) throw new Error("Upload failed");
+                              const data = await res.json();
+                              setForm(f => ({ ...f, size_chart_url: data.url }));
+                            } catch (err) {
+                              alert("Failed to upload size chart");
+                            }
+                          }}
+                        />
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-on-surface-variant uppercase tracking-wider">or paste URL</span>
+                        <input
+                          type="text"
+                          placeholder="https://..."
+                          className="flex-1 bg-surface-container border border-outline-variant/50 rounded-xl px-3 py-2 text-xs text-on-surface focus:outline-none"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              const val = (e.target as HTMLInputElement).value.trim();
+                              if (val) setForm(f => ({ ...f, size_chart_url: val }));
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value.trim();
+                            if (val) setForm(f => ({ ...f, size_chart_url: val }));
+                          }}
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
 

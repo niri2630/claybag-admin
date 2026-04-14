@@ -93,7 +93,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, branding_info: "", branding_methods: [] as string[], size_chart_url: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, branding_info: "", branding_methods: [] as string[], size_chart_url: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false });
   const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
@@ -235,7 +235,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, branding_info: "", branding_methods: [], size_chart_url: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, branding_info: "", branding_methods: [], size_chart_url: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -252,6 +252,7 @@ export default function ProductsPage() {
       size_chart_url: p.size_chart_url || "",
       subcategory_id: p.subcategory_id,
       base_price: p.base_price,
+      compare_price: p.compare_price ?? null,
       is_active: p.is_active,
       has_variants: p.has_variants,
       is_featured: p.is_featured || false,
@@ -357,7 +358,12 @@ export default function ProductsPage() {
                         </button>
                       </div>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="font-label font-bold text-sm text-on-surface-variant">₹{p.base_price.toLocaleString()}</span>
+                        <span className="font-label font-bold text-sm text-on-surface-variant">
+                          ₹{p.base_price.toLocaleString()}
+                          {p.compare_price && p.compare_price > p.base_price && (
+                            <span className="ml-1.5 text-xs font-normal line-through text-outline">₹{p.compare_price.toLocaleString()}</span>
+                          )}
+                        </span>
                         <span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md ${p.is_active ? "bg-surface-container-low text-on-surface" : "bg-error-container/50 text-error"}`}>
                           {p.is_active ? "Active" : "Hidden"}
                         </span>
@@ -521,12 +527,26 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Base Valuation (₹)</label>
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Selling Price (₹)</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
                     <input type="number" value={form.base_price} onChange={e => setForm(f => ({ ...f, base_price: Number(e.target.value) }))}
                       className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
                   </div>
+                </div>
+                <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">MRP / Compare Price (₹) <span className="text-outline font-normal normal-case">optional</span></label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
+                    <input type="number" value={form.compare_price ?? ""} onChange={e => setForm(f => ({ ...f, compare_price: e.target.value ? Number(e.target.value) : null }))}
+                      placeholder="Original price (shown as strikethrough)"
+                      className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all placeholder:font-body placeholder:font-normal placeholder:text-sm" />
+                  </div>
+                  {form.compare_price && form.base_price > 0 && form.compare_price > form.base_price && (
+                    <p className="text-xs text-tertiary mt-1.5 font-label">
+                      {Math.round(((form.compare_price - form.base_price) / form.compare_price) * 100)}% off
+                    </p>
+                  )}
                 </div>
 
                 <div className="col-span-2 md:col-span-1 flex flex-col justify-center gap-4 bg-surface-container-low rounded-2xl p-5 border border-outline-variant/30">

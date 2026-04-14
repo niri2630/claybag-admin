@@ -134,7 +134,25 @@ export default function OrdersPage() {
                        {new Date(selected.created_at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
                     </p>
                   </div>
-                  <span className={`px-4 py-2 rounded-xl text-sm uppercase tracking-wider font-bold ${STATUS_COLOR[selected.status] || ""}`}>{selected.status}</span>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-4 py-2 rounded-xl text-sm uppercase tracking-wider font-bold ${STATUS_COLOR[selected.status] || ""}`}>{selected.status}</span>
+                    <button
+                      onClick={async () => {
+                        if (!confirm("Are you sure you want to permanently delete this order? This cannot be undone.")) return;
+                        try {
+                          await api.deleteOrder(selected.id);
+                          setSelected(null);
+                          load();
+                        } catch (e: unknown) {
+                          alert(e instanceof Error ? e.message : "Failed to delete order");
+                        }
+                      }}
+                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-error-container text-on-error-container hover:bg-error hover:text-white transition-colors"
+                      title="Delete order"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">delete</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">

@@ -93,7 +93,8 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, branding_info: "", size_chart_url: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, branding_info: "", branding_methods: [] as string[], size_chart_url: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false });
+  const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
@@ -136,9 +137,15 @@ export default function ProductsPage() {
   }
 
   async function deleteProduct(id: number) {
-    if (!confirm("Delete product?")) return;
-    try { await api.deleteProduct(id); setSelected(null); setEditMode(false); load(); }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
+    if (!confirm("Are you sure you want to delete this product? This cannot be undone.")) return;
+    try {
+      const res = await api.deleteProduct(id) as { detail?: string };
+      if (res?.detail?.includes("deactivated")) {
+        alert("This product has existing orders and was deactivated (hidden) instead of permanently deleted.");
+      }
+      setSelected(null); setEditMode(false); load();
+    }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to delete product"); }
   }
 
   async function uploadImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -228,7 +235,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, branding_info: "", size_chart_url: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, branding_info: "", branding_methods: [], size_chart_url: "", subcategory_id: 0, base_price: 0, is_active: true, has_variants: false, is_featured: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -241,6 +248,7 @@ export default function ProductsPage() {
       delivery_info: p.delivery_info || "",
       min_order_qty: p.min_order_qty ?? null,
       branding_info: p.branding_info || "",
+      branding_methods: p.branding_methods || [],
       size_chart_url: p.size_chart_url || "",
       subcategory_id: p.subcategory_id,
       base_price: p.base_price,
@@ -495,9 +503,21 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">BRANDING & PRINTING</label>
-                  <textarea value={form.branding_info} onChange={e => setForm(f => ({ ...f, branding_info: e.target.value }))} rows={3}
-                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Describe printing methods available (e.g., Screen Printing, Embroidery, UV Print...)" />
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">BRANDING METHODS</label>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {ALL_BRANDING_METHODS.map(method => {
+                      const isActive = form.branding_methods.includes(method);
+                      return (
+                        <button key={method} type="button"
+                          onClick={() => setForm(f => ({ ...f, branding_methods: isActive ? f.branding_methods.filter(m => m !== method) : [...f.branding_methods, method] }))}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isActive ? "bg-primary text-on-primary border-primary shadow-sm" : "bg-surface-container border-outline-variant/50 text-on-surface-variant hover:border-primary/50"}`}
+                        >{method}</button>
+                      );
+                    })}
+                  </div>
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">BRANDING NOTES (optional)</label>
+                  <textarea value={form.branding_info} onChange={e => setForm(f => ({ ...f, branding_info: e.target.value }))} rows={2}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Additional branding notes..." />
                 </div>
 
                 <div className="col-span-2 md:col-span-1 flex flex-col justify-end">

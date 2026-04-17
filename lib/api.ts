@@ -93,6 +93,8 @@ export const api = {
   // Users
   getUsers: () => request<User[]>("/users"),
 
+  deleteUser: (id: number) => request(`/users/${id}`, { method: "DELETE" }),
+
   // Company Profiles
   getCompanyProfiles: () => request<CompanyProfile[]>("/company-profile/all"),
   getUserCompanyProfile: (userId: number) => request<CompanyProfile>(`/company-profile/user/${userId}`),

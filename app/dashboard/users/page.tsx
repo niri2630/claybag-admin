@@ -281,6 +281,26 @@ export default function UsersPage() {
                                 )}
                               </div>
                             </div>
+
+                            {/* Delete User */}
+                            <div className="mt-4 pt-4 border-t border-outline-variant/20 flex justify-end">
+                              <button
+                                onClick={async () => {
+                                  if (!confirm(`Delete user "${u.name}" (${u.email})? This cannot be undone.`)) return;
+                                  try {
+                                    await api.deleteUser(u.id);
+                                    setUsers(prev => prev.filter(usr => usr.id !== u.id));
+                                    setExpandedUserId(null);
+                                  } catch {
+                                    alert("Failed to delete user. They may have existing orders.");
+                                  }
+                                }}
+                                className="px-4 py-2 bg-error text-on-error text-[10px] font-bold uppercase tracking-wider rounded hover:opacity-90 flex items-center gap-1"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                                Delete User
+                              </button>
+                            </div>
                           </td>
                         </motion.tr>
                       )}

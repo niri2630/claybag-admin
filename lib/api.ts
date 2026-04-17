@@ -103,6 +103,12 @@ export const api = {
     request(`/orders/${id}/status`, { method: "PUT", body: JSON.stringify({ status, note }) }),
   deleteOrder: (id: number) => request(`/orders/${id}`, { method: "DELETE" }),
 
+  // Wallet & Referrals
+  getAllWallets: () => request<WalletInfo[]>("/wallet/all"),
+  creditWallet: (userId: number, amount: number, description: string) =>
+    request<{ message: string; balance: number }>(`/wallet/credit/${userId}`, { method: "POST", body: JSON.stringify({ amount, description }) }),
+  getAllReferrals: () => request<ReferralInfo[]>("/referrals/all"),
+
   // Reviews
   getReviews: () => request<Review[]>("/reviews/all"),
   approveReview: (id: number) => request<Review>(`/reviews/${id}/approve`, { method: "PUT" }),
@@ -123,3 +129,5 @@ export interface OrderItem { id: number; product_id: number; product_name?: stri
 export interface TrackingEntry { id: number; status: string; note?: string; created_at: string; }
 export interface Review { id: number; user_id: number; product_id: number; rating: number; comment?: string; is_approved: boolean; created_at: string; user_name: string; product_name: string; }
 export interface CompanyProfile { id: number; user_id: number; company_name: string; business_type: string; gst_number?: string; registered_address?: string; contact_person?: string; description?: string; created_at: string; updated_at?: string; }
+export interface WalletInfo { id: number; user_id: number; user_name?: string; user_email?: string; balance: number; created_at?: string; }
+export interface ReferralInfo { id: number; referrer_name?: string; referrer_email?: string; referred_name?: string; referred_email?: string; referral_code: string; status: string; coins_credited: boolean; created_at?: string; completed_at?: string; }

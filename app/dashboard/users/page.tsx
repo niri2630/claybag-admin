@@ -1,6 +1,6 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
-import { api, User, CompanyProfile } from "@/lib/api";
+import { api, User, CompanyProfile, WalletInfo } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
 const BUSINESS_TYPE_LABELS: Record<string, string> = {
@@ -22,11 +22,26 @@ export default function UsersPage() {
   const [companyProfiles, setCompanyProfiles] = useState<Record<number, CompanyProfile | null>>({});
   const [profileLoading, setProfileLoading] = useState<number | null>(null);
 
+  // Wallet data
+  const [wallets, setWallets] = useState<Record<number, number>>({});
+  const [creditUserId, setCreditUserId] = useState<number | null>(null);
+  const [creditAmount, setCreditAmount] = useState("");
+  const [creditDesc, setCreditDesc] = useState("");
+  const [creditLoading, setCreditLoading] = useState(false);
+
   useEffect(() => {
     api.getUsers()
       .then(setUsers)
       .catch(e => setError(e instanceof Error ? e.message : "Error"))
       .finally(() => setLoading(false));
+    // Fetch all wallet balances
+    api.getAllWallets()
+      .then((ws: WalletInfo[]) => {
+        const map: Record<number, number> = {};
+        ws.forEach(w => { map[w.user_id] = w.balance; });
+        setWallets(map);
+      })
+      .catch(() => {});
   }, []);
 
   async function toggleExpand(userId: number) {
@@ -46,6 +61,22 @@ export default function UsersPage() {
       } finally {
         setProfileLoading(null);
       }
+    }
+  }
+
+  async function handleCreditCoins(userId: number) {
+    if (!creditAmount || Number(creditAmount) <= 0) return;
+    setCreditLoading(true);
+    try {
+      const res = await api.creditWallet(userId, Number(creditAmount), creditDesc || "Admin credit");
+      setWallets(prev => ({ ...prev, [userId]: res.balance }));
+      setCreditUserId(null);
+      setCreditAmount("");
+      setCreditDesc("");
+    } catch {
+      // error handling
+    } finally {
+      setCreditLoading(false);
     }
   }
 
@@ -197,6 +228,59 @@ export default function UsersPage() {
                                 <span className="text-sm text-on-surface-variant font-medium">No company profile submitted by this user.</span>
                               </div>
                             )}
+
+                            {/* Wallet & Referral Info */}
+                            <div className="mt-6 pt-4 border-t border-outline-variant/20">
+                              <div className="flex items-center gap-2 mb-3">
+                                <span className="material-symbols-outlined text-primary">toll</span>
+                                <h3 className="font-headline font-bold text-on-surface text-sm uppercase tracking-wider">Clay Coins</h3>
+                              </div>
+                              <div className="flex items-center gap-6 flex-wrap">
+                                <div>
+                                  <p className="text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant mb-1">Balance</p>
+                                  <p className="text-xl font-bold text-on-surface">{(wallets[u.id] || 0).toFixed(0)} coins</p>
+                                </div>
+                                {creditUserId === u.id ? (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="number"
+                                      placeholder="Amount"
+                                      value={creditAmount}
+                                      onChange={(e) => setCreditAmount(e.target.value)}
+                                      className="w-24 border border-outline-variant/30 px-2 py-1.5 text-sm rounded focus:border-primary focus:ring-0"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Reason"
+                                      value={creditDesc}
+                                      onChange={(e) => setCreditDesc(e.target.value)}
+                                      className="w-40 border border-outline-variant/30 px-2 py-1.5 text-sm rounded focus:border-primary focus:ring-0"
+                                    />
+                                    <button
+                                      onClick={() => handleCreditCoins(u.id)}
+                                      disabled={creditLoading}
+                                      className="px-3 py-1.5 bg-primary text-on-primary text-xs font-bold uppercase tracking-wider rounded hover:opacity-90 disabled:opacity-50"
+                                    >
+                                      {creditLoading ? "..." : "Credit"}
+                                    </button>
+                                    <button
+                                      onClick={() => { setCreditUserId(null); setCreditAmount(""); setCreditDesc(""); }}
+                                      className="px-2 py-1.5 text-xs text-on-surface-variant hover:text-on-surface"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    onClick={() => setCreditUserId(u.id)}
+                                    className="px-3 py-1.5 bg-secondary text-on-secondary text-[10px] font-bold uppercase tracking-wider rounded hover:opacity-90 flex items-center gap-1"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">add</span>
+                                    Credit Coins
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           </td>
                         </motion.tr>
                       )}

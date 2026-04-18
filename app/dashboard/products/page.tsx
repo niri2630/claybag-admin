@@ -85,6 +85,123 @@ function VariantClassPicker({ value, onChange }: { value: string; onChange: (v: 
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// Material Symbols icon options for Shipping & Use Cases cards
+const SHIPPING_ICONS = [
+  "local_shipping", "schedule", "verified", "undo", "inventory_2", "route",
+  "package_2", "bolt", "palette", "support_agent", "lock", "payments",
+  "shield", "eco", "public", "airport_shuttle", "forklift", "cached",
+];
+const USECASE_ICONS = [
+  "rocket_launch", "groups", "storefront", "card_giftcard", "campaign", "school",
+  "celebration", "workspaces", "business_center", "sports_esports", "handshake",
+  "diversity_3", "emoji_events", "stars", "flag", "menu_book", "cake", "theater_comedy",
+];
+
+type Point = { icon: string; title: string; description: string };
+
+function parsePoints(raw: string): Point[] {
+  if (!raw || !raw.trim()) return [];
+  return raw.split(/\r?\n/).map((line) => line.trim()).filter((l) => l.length > 0).map((line) => {
+    const parts = line.split("|").map((p) => p.trim());
+    if (parts.length >= 3) return { icon: parts[0], title: parts[1], description: parts.slice(2).join("|").trim() };
+    if (line.includes(":")) {
+      const title = line.split(":")[0].trim();
+      const description = line.split(":").slice(1).join(":").trim();
+      return { icon: "", title, description };
+    }
+    return { icon: "", title: "", description: line };
+  });
+}
+
+function stringifyPoints(points: Point[]): string {
+  return points
+    .filter((p) => p.description.trim() || p.title.trim())
+    .map((p) => `${p.icon || ""}|${p.title || ""}|${p.description || ""}`)
+    .join("\n");
+}
+
+function IconPicker({ value, options, onChange }: { value: string; options: string[]; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" onClick={() => setOpen(!open)} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl w-11 h-11 flex items-center justify-center hover:bg-surface-container transition-colors">
+        <span className="material-symbols-outlined text-[#fdc003]">{value || "add"}</span>
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 w-72 bg-surface-container-lowest border border-outline-variant/50 rounded-xl shadow-2xl z-50 p-2 grid grid-cols-6 gap-1 max-h-64 overflow-y-auto">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => { onChange(opt); setOpen(false); }}
+              title={opt}
+              className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${value === opt ? "bg-[#fdc003]/20" : "hover:bg-surface-container"}`}
+            >
+              <span className="material-symbols-outlined text-[#785900]" style={{ fontSize: "20px" }}>{opt}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PointEditor({ label, value, onChange, icons, placeholder }: { label: string; value: string; onChange: (v: string) => void; icons: string[]; placeholder: string }) {
+  const points = parsePoints(value);
+  const update = (i: number, patch: Partial<Point>) => {
+    const next = points.length ? [...points] : [{ icon: "", title: "", description: "" }];
+    next[i] = { ...next[i], ...patch };
+    onChange(stringifyPoints(next));
+  };
+  const add = () => onChange(stringifyPoints([...points, { icon: icons[0], title: "", description: "" }]));
+  const remove = (i: number) => onChange(stringifyPoints(points.filter((_, idx) => idx !== i)));
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">{label}</label>
+        <button type="button" onClick={add} className="text-[11px] font-bold uppercase tracking-wider text-[#785900] hover:text-[#fdc003] transition-colors flex items-center gap-1">
+          <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>add_circle</span>
+          Add point
+        </button>
+      </div>
+      {points.length === 0 ? (
+        <p className="text-xs text-on-surface/40 italic p-3 bg-surface-container/30 rounded-xl">{placeholder}</p>
+      ) : (
+        <div className="space-y-2">
+          {points.map((p, i) => (
+            <div key={i} className="flex items-start gap-2 bg-surface-container/30 p-2 rounded-xl">
+              <IconPicker value={p.icon} options={icons} onChange={(v) => update(i, { icon: v })} />
+              <div className="flex-1 space-y-1">
+                <input
+                  placeholder="Title (optional)"
+                  value={p.title}
+                  onChange={(e) => update(i, { title: e.target.value })}
+                  className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary-container"
+                />
+                <input
+                  placeholder="Description"
+                  value={p.description}
+                  onChange={(e) => update(i, { description: e.target.value })}
+                  className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-lg px-3 py-2 text-sm text-on-surface focus:outline-none focus:ring-1 focus:ring-secondary-container"
+                />
+              </div>
+              <button type="button" onClick={() => remove(i)} className="w-9 h-9 flex items-center justify-center text-error hover:bg-error-container/30 rounded-lg transition-colors">
+                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>delete</span>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -417,10 +534,14 @@ export default function ProductsPage() {
                     className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Material: 100% Cotton&#10;Weight: 180 GSM&#10;Print: Screen/DTG" />
                 </div>
 
-                <div className="col-span-2 md:col-span-1">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Use Cases</label>
-                  <textarea value={form.use_cases} onChange={e => setForm(f => ({ ...f, use_cases: e.target.value }))} rows={3}
-                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Team branding, events, gifting..." />
+                <div className="col-span-2">
+                  <PointEditor
+                    label="Use Cases (shown on USE CASES tab)"
+                    value={form.use_cases}
+                    onChange={(v) => setForm(f => ({ ...f, use_cases: v }))}
+                    icons={USECASE_ICONS}
+                    placeholder="No use cases added. Click Add point to create cards with icons."
+                  />
                 </div>
 
                 <div className="col-span-2 md:col-span-1">
@@ -430,9 +551,13 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Delivery Notes</label>
-                  <textarea value={form.delivery_info} onChange={e => setForm(f => ({ ...f, delivery_info: e.target.value }))} rows={2}
-                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Custom branding adds 7-14 days..." />
+                  <PointEditor
+                    label="Shipping Info (shown on SHIPPING tab)"
+                    value={form.delivery_info}
+                    onChange={(v) => setForm(f => ({ ...f, delivery_info: v }))}
+                    icons={SHIPPING_ICONS}
+                    placeholder="No shipping points added. Click Add point to create cards with icons."
+                  />
                 </div>
 
                 <div className="col-span-2 md:col-span-1">

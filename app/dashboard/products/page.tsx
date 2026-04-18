@@ -115,7 +115,6 @@ function parsePoints(raw: string): Point[] {
 
 function stringifyPoints(points: Point[]): string {
   return points
-    .filter((p) => p.description.trim() || p.title.trim())
     .map((p) => `${p.icon || ""}|${p.title || ""}|${p.description || ""}`)
     .join("\n");
 }

@@ -97,6 +97,51 @@ const USECASE_ICONS = [
   "diversity_3", "emoji_events", "stars", "flag", "menu_book", "cake", "theater_comedy",
 ];
 
+// Default shipping & use case points — can be loaded into editor per product
+const DEFAULT_SHIPPING_POINTS = [
+  { icon: "local_shipping", title: "Pan-India Delivery", description: "Delivered across India. Free shipping on every order — the price you see is the price you pay." },
+  { icon: "undo", title: "Returns & Refunds", description: "Easy returns within 7 days of delivery. Customized products are non-returnable." },
+];
+const DEFAULT_USE_CASE_POINTS = [
+  { icon: "rocket_launch", title: "Startup Launches", description: "Brand your launch events with custom merchandise" },
+  { icon: "groups", title: "Team Building", description: "Create matching branded gear for your team" },
+  { icon: "storefront", title: "Trade Shows & Expos", description: "Stand out at events with branded displays and giveaways" },
+  { icon: "card_giftcard", title: "Corporate Gifting", description: "Premium branded gifts for clients and partners" },
+  { icon: "campaign", title: "Marketing Campaigns", description: "Physical branded touchpoints for your marketing" },
+  { icon: "school", title: "College Fests & Events", description: "Affordable branded merch for student organizations" },
+];
+
+// Suggested chips — predefined options the admin can quick-add per product
+const SHIPPING_SUGGESTIONS: Point[] = [
+  { icon: "local_shipping", title: "Pan-India Delivery", description: "Delivered across India. Free shipping on every order." },
+  { icon: "payments", title: "Free Shipping", description: "No hidden charges. The price you see is the price you pay." },
+  { icon: "bolt", title: "Express Dispatch", description: "Available to metro cities on request — talk to us for timelines." },
+  { icon: "schedule", title: "Custom Branding Time", description: "Branded products dispatch within 7-14 business days after artwork approval." },
+  { icon: "inventory_2", title: "Bulk Order Discounts", description: "Per-piece prices drop as quantity increases. See the pricing slabs above." },
+  { icon: "route", title: "Trackable Shipping", description: "Tracking link sent via email & SMS once your order ships." },
+  { icon: "verified", title: "Quality Checked", description: "Every order goes through a 3-stage QC before dispatch." },
+  { icon: "undo", title: "Returns & Refunds", description: "Easy returns within 7 days of delivery. Customized products are non-returnable." },
+  { icon: "support_agent", title: "Dedicated Support", description: "Our team is available Mon-Sat, 10 AM to 7 PM IST for any questions." },
+  { icon: "shield", title: "Secure Packaging", description: "Each item is bubble-wrapped and shipped in tamper-proof packaging." },
+];
+
+const USECASE_SUGGESTIONS: Point[] = [
+  { icon: "rocket_launch", title: "Startup Launches", description: "Brand your launch events with custom merchandise" },
+  { icon: "groups", title: "Team Building", description: "Create matching branded gear for your team" },
+  { icon: "card_giftcard", title: "Corporate Gifting", description: "Premium branded gifts for clients and partners" },
+  { icon: "storefront", title: "Trade Shows & Expos", description: "Stand out at events with branded displays and giveaways" },
+  { icon: "campaign", title: "Marketing Campaigns", description: "Physical branded touchpoints for your marketing" },
+  { icon: "school", title: "College Fests & Events", description: "Affordable branded merch for student organizations" },
+  { icon: "business_center", title: "Employee Onboarding", description: "Welcome new hires with a curated branded kit" },
+  { icon: "celebration", title: "Festival Celebrations", description: "Custom merchandise for Diwali, Holi, and other festivities" },
+  { icon: "handshake", title: "Customer Appreciation", description: "Thank loyal customers with branded keepsakes" },
+  { icon: "emoji_events", title: "Sports Events", description: "Team kits, jerseys, and trophies for sporting events" },
+  { icon: "stars", title: "Anniversaries & Milestones", description: "Commemorate company milestones with custom merch" },
+  { icon: "menu_book", title: "Conferences & Seminars", description: "Branded conference kits for attendees and speakers" },
+  { icon: "diversity_3", title: "Community Events", description: "Custom merch for community programs and outreach" },
+  { icon: "workspaces", title: "Office Welcome Kits", description: "Set up new office spaces with branded essentials" },
+];
+
 type Point = { icon: string; title: string; description: string };
 
 function parsePoints(raw: string): Point[] {
@@ -151,24 +196,95 @@ function IconPicker({ value, options, onChange }: { value: string; options: stri
   );
 }
 
-function PointEditor({ label, value, onChange, icons, placeholder }: { label: string; value: string; onChange: (v: string) => void; icons: string[]; placeholder: string }) {
-  const points = parsePoints(value);
-  const update = (i: number, patch: Partial<Point>) => {
-    const next = points.length ? [...points] : [{ icon: "", title: "", description: "" }];
-    next[i] = { ...next[i], ...patch };
-    onChange(stringifyPoints(next));
+function PointEditor({ label, value, onChange, icons, placeholder, defaults, suggestions }: { label: string; value: string; onChange: (v: string) => void; icons: string[]; placeholder: string; defaults?: Point[]; suggestions?: Point[] }) {
+  const [points, setPoints] = useState<Point[]>(() => parsePoints(value));
+  const lastExternalRef = useRef<string>(value);
+  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
+
+  // Sync from external value ONLY when it changes from outside (e.g. editing a different product)
+  useEffect(() => {
+    if (value !== lastExternalRef.current && value !== stringifyPoints(points)) {
+      setPoints(parsePoints(value));
+      lastExternalRef.current = value;
+    }
+  }, [value, points]);
+
+  const commit = (next: Point[]) => {
+    setPoints(next);
+    const s = stringifyPoints(next);
+    lastExternalRef.current = s;
+    onChange(s);
   };
-  const add = () => onChange(stringifyPoints([...points, { icon: icons[0], title: "", description: "" }]));
-  const remove = (i: number) => onChange(stringifyPoints(points.filter((_, idx) => idx !== i)));
+
+  const update = (i: number, patch: Partial<Point>) => {
+    const next = [...points];
+    next[i] = { ...next[i], ...patch };
+    commit(next);
+  };
+  const add = () => commit([...points, { icon: icons[0], title: "", description: "" }]);
+  const remove = (i: number) => commit(points.filter((_, idx) => idx !== i));
+  const loadDefaults = () => defaults && commit([...points, ...defaults]);
+
+  // Suggestions filter — exclude already-added titles (case-insensitive)
+  const usedTitles = new Set(points.map((p) => p.title.trim().toLowerCase()).filter(Boolean));
+  const availableSuggestions = (suggestions || []).filter(
+    (s) => !usedTitles.has(s.title.trim().toLowerCase())
+  );
+  const visibleSuggestions = showAllSuggestions ? availableSuggestions : availableSuggestions.slice(0, 6);
+
+  const addSuggestion = (s: Point) => commit([...points, { ...s }]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">{label}</label>
-        <button type="button" onClick={add} className="text-[11px] font-bold uppercase tracking-wider text-[#785900] hover:text-[#fdc003] transition-colors flex items-center gap-1">
-          <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>add_circle</span>
-          Add point
-        </button>
+        <div className="flex items-center gap-3">
+          {defaults && defaults.length > 0 && (
+            <button type="button" onClick={loadDefaults} className="text-[11px] font-bold uppercase tracking-wider text-[#785900] hover:text-[#fdc003] transition-colors flex items-center gap-1">
+              <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>download</span>
+              Load defaults
+            </button>
+          )}
+          <button type="button" onClick={add} className="text-[11px] font-bold uppercase tracking-wider text-[#785900] hover:text-[#fdc003] transition-colors flex items-center gap-1">
+            <span className="material-symbols-outlined" style={{ fontSize: "16px" }}>add_circle</span>
+            Add custom
+          </button>
+        </div>
       </div>
+
+      {/* Quick-add suggestion chips */}
+      {availableSuggestions.length > 0 && (
+        <div className="mb-3 p-3 bg-secondary-container/20 rounded-xl border border-secondary-container/40">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Quick add — click to insert</span>
+            {availableSuggestions.length > 6 && (
+              <button
+                type="button"
+                onClick={() => setShowAllSuggestions(!showAllSuggestions)}
+                className="text-[10px] font-bold uppercase tracking-wider text-[#785900] hover:text-[#fdc003] transition-colors"
+              >
+                {showAllSuggestions ? "Show less" : `Show all (${availableSuggestions.length})`}
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {visibleSuggestions.map((s) => (
+              <button
+                key={s.title}
+                type="button"
+                onClick={() => addSuggestion(s)}
+                title={s.description}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-surface-container-lowest hover:bg-[#fdc003] hover:text-black rounded-full border border-outline-variant/30 text-[11px] font-medium transition-all"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: "14px" }}>{s.icon}</span>
+                {s.title}
+                <span className="material-symbols-outlined opacity-50" style={{ fontSize: "12px" }}>add</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {points.length === 0 ? (
         <p className="text-xs text-on-surface/40 italic p-3 bg-surface-container/30 rounded-xl">{placeholder}</p>
       ) : (
@@ -209,7 +325,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, branding_info: "", branding_methods: [] as string[], size_chart_url: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false });
   const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
@@ -351,7 +467,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, branding_info: "", branding_methods: [], size_chart_url: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -366,6 +482,8 @@ export default function ProductsPage() {
       branding_info: p.branding_info || "",
       branding_methods: p.branding_methods || [],
       size_chart_url: p.size_chart_url || "",
+      hsn_code: p.hsn_code || "",
+      gst_rate: p.gst_rate ?? null,
       subcategory_id: p.subcategory_id,
       base_price: p.base_price,
       compare_price: p.compare_price ?? null,
@@ -539,7 +657,9 @@ export default function ProductsPage() {
                     value={form.use_cases}
                     onChange={(v) => setForm(f => ({ ...f, use_cases: v }))}
                     icons={USECASE_ICONS}
-                    placeholder="No use cases added. Click Add point to create cards with icons."
+                    placeholder="No use cases added. Click a chip above to quick-add, or Add custom for a blank one."
+                    defaults={DEFAULT_USE_CASE_POINTS}
+                    suggestions={USECASE_SUGGESTIONS}
                   />
                 </div>
 
@@ -555,7 +675,9 @@ export default function ProductsPage() {
                     value={form.delivery_info}
                     onChange={(v) => setForm(f => ({ ...f, delivery_info: v }))}
                     icons={SHIPPING_ICONS}
-                    placeholder="No shipping points added. Click Add point to create cards with icons."
+                    placeholder="No shipping points added. Click a chip above to quick-add, or Add custom for a blank one."
+                    defaults={DEFAULT_SHIPPING_POINTS}
+                    suggestions={SHIPPING_SUGGESTIONS}
                   />
                 </div>
 
@@ -563,6 +685,43 @@ export default function ProductsPage() {
                   <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Minimum Order Qty</label>
                   <input type="number" min="1" value={form.min_order_qty ?? ""} onChange={e => setForm(f => ({ ...f, min_order_qty: e.target.value === "" ? null : Number(e.target.value) }))}
                     className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Leave empty for no MOQ" />
+                </div>
+
+                {/* GST + HSN compliance fields */}
+                <div className="col-span-2 md:col-span-1">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">
+                    <span className="material-symbols-outlined text-[14px] align-middle mr-1">receipt_long</span>
+                    HSN Code
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={10}
+                    value={form.hsn_code}
+                    onChange={e => setForm(f => ({ ...f, hsn_code: e.target.value.replace(/\s/g, "") }))}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-mono uppercase tracking-wider focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+                    placeholder="e.g. 6109 (for cotton tees)"
+                  />
+                  <p className="text-[10px] text-on-surface/40 mt-1">Required on GST invoices. Common: 6109 (cotton tees), 6505 (caps), 6911 (mugs), 4820 (notebooks)</p>
+                </div>
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">
+                    <span className="material-symbols-outlined text-[14px] align-middle mr-1">percent</span>
+                    GST Rate
+                  </label>
+                  <select
+                    value={form.gst_rate ?? ""}
+                    onChange={e => setForm(f => ({ ...f, gst_rate: e.target.value === "" ? null : Number(e.target.value) }))}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+                  >
+                    <option value="">Default (18%)</option>
+                    <option value="0">0% — Exempt</option>
+                    <option value="5">5%</option>
+                    <option value="12">12%</option>
+                    <option value="18">18%</option>
+                    <option value="28">28%</option>
+                  </select>
+                  <p className="text-[10px] text-on-surface/40 mt-1">Prices are GST-inclusive — this controls the tax split on invoice</p>
                 </div>
 
                 <div className="col-span-2 md:col-span-1">

@@ -138,6 +138,43 @@ export default function OrdersPage() {
                     <span className={`px-4 py-2 rounded-xl text-sm uppercase tracking-wider font-bold ${STATUS_COLOR[selected.status] || ""}`}>{selected.status}</span>
                     <button
                       onClick={async () => {
+                        try {
+                          const blob = await api.downloadInvoice(selected.id);
+                          const url = URL.createObjectURL(blob);
+                          const link = document.createElement("a");
+                          link.href = url;
+                          link.download = `ClayBag-Invoice-${selected.order_number ?? selected.id}.pdf`;
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                          URL.revokeObjectURL(url);
+                        } catch (e: unknown) {
+                          alert(e instanceof Error ? e.message : "Failed to download invoice");
+                        }
+                      }}
+                      className="px-4 h-10 flex items-center gap-2 rounded-xl bg-secondary-container text-on-secondary-container hover:bg-[#fdc003] hover:text-black transition-colors text-xs font-bold uppercase tracking-wider"
+                      title="Download GST invoice PDF"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">download</span>
+                      Invoice
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!confirm("Resend the invoice email to the customer?")) return;
+                        try {
+                          const r = await api.resendInvoiceEmail(selected.id);
+                          alert(r.detail || "Email queued");
+                        } catch (e: unknown) {
+                          alert(e instanceof Error ? e.message : "Failed to resend email");
+                        }
+                      }}
+                      className="w-10 h-10 flex items-center justify-center rounded-xl bg-surface-container text-on-surface-variant hover:bg-tertiary-container hover:text-on-tertiary-container transition-colors"
+                      title="Resend invoice email to customer"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">forward_to_inbox</span>
+                    </button>
+                    <button
+                      onClick={async () => {
                         if (!confirm("Are you sure you want to permanently delete this order? This cannot be undone.")) return;
                         try {
                           await api.deleteOrder(selected.id);

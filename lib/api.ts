@@ -130,7 +130,86 @@ export const api = {
   approveReview: (id: number) => request<Review>(`/reviews/${id}/approve`, { method: "PUT" }),
   rejectReview: (id: number) => request<Review>(`/reviews/${id}/reject`, { method: "PUT" }),
   deleteReview: (id: number) => request(`/reviews/${id}`, { method: "DELETE" }),
+
+  // Reports & Exports
+  getSalesSummary: (start?: string, end?: string) => {
+    const params = new URLSearchParams();
+    if (start) params.set("start", start);
+    if (end) params.set("end", end);
+    const qs = params.toString();
+    return request<SalesSummary>(`/reports/sales-summary${qs ? `?${qs}` : ""}`);
+  },
+  getGstSummary: (start?: string, end?: string) => {
+    const params = new URLSearchParams();
+    if (start) params.set("start", start);
+    if (end) params.set("end", end);
+    const qs = params.toString();
+    return request<GstSummary>(`/reports/gst-summary${qs ? `?${qs}` : ""}`);
+  },
+  // CSV downloads — return blob URL and filename for the caller to trigger download
+  downloadOrdersCsv: async (start?: string, end?: string, status?: string) => {
+    const params = new URLSearchParams();
+    if (start) params.set("start", start);
+    if (end) params.set("end", end);
+    if (status) params.set("status", status);
+    return downloadCsv(`/reports/orders.csv${params.toString() ? `?${params.toString()}` : ""}`);
+  },
+  downloadGstCsv: async (start?: string, end?: string) => {
+    const params = new URLSearchParams();
+    if (start) params.set("start", start);
+    if (end) params.set("end", end);
+    return downloadCsv(`/reports/gst.csv${params.toString() ? `?${params.toString()}` : ""}`);
+  },
+  downloadProductsCsv: async () => downloadCsv("/reports/products.csv"),
 };
+
+// Helper: fetch a CSV endpoint with auth, trigger a browser download
+async function downloadCsv(path: string): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const txt = await res.text().catch(() => "");
+    throw new Error(txt || `Download failed (${res.status})`);
+  }
+  // Extract filename from Content-Disposition if present
+  const disposition = res.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  const filename = match ? match[1] : "claybag-export.csv";
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Report types
+export interface SalesSummary {
+  start: string;
+  end: string;
+  total_revenue: number;
+  order_count: number;
+  avg_order_value: number;
+  daily_revenue: { date: string; revenue: number; orders: number }[];
+  top_products: { id: number; name: string; units_sold: number; revenue: number }[];
+  top_customers: { id: number; name: string; email: string; orders: number; spent: number }[];
+}
+
+export interface GstSummary {
+  start: string;
+  end: string;
+  total_taxable: number;
+  total_cgst: number;
+  total_sgst: number;
+  total_igst: number;
+  by_state: { state: string; taxable: number; cgst: number; sgst: number; igst: number; orders: number }[];
+  by_hsn: { hsn: string; rate: number; taxable: number; tax: number; units: number }[];
+}
 
 // Types
 export interface Category { id: number; name: string; slug: string; icon: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }

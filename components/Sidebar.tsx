@@ -10,6 +10,7 @@ const nav = [
   { href: "/dashboard/orders", label: "Orders", icon: "shopping_cart" },
   { href: "/dashboard/reviews", label: "Reviews", icon: "rate_review" },
   { href: "/dashboard/users", label: "Users", icon: "group" },
+  { href: "/dashboard/reports", label: "Reports", icon: "analytics" },
 ];
 
 export default function Sidebar() {

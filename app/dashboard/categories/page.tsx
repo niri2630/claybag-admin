@@ -3,7 +3,14 @@ import { useEffect, useRef, useState } from "react";
 import { api, Category, SubCategory } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
-function slugify(s: string) { return s.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""); }
+// Robust slugify: lowercase, replace any non-alphanumeric with -, collapse repeats, trim dashes.
+// Example: "Hoodies & jackets" -> "hoodies-jackets", "Gifts Under 99" -> "gifts-under-99"
+function slugify(s: string) {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 const CATEGORY_ICONS = [
   "checkroom", "shopping_bag", "business_center", "card_giftcard", "local_drink",
@@ -192,10 +199,10 @@ export default function CategoriesPage() {
         </h3>
         <div className="flex flex-wrap items-center gap-4">
           <IconPicker value={catForm.icon} onChange={(icon) => setCatForm(f => ({ ...f, icon }))} />
-          <input placeholder="Name" value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value, slug: f.slug || slugify(e.target.value) }))}
+          <input placeholder="Name" value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value, slug: editCat ? f.slug : (f.slug || slugify(e.target.value)) }))}
             className="bg-surface-container border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
-          <input placeholder="Slug" value={catForm.slug} onChange={e => setCatForm(f => ({ ...f, slug: e.target.value }))}
-            className="bg-surface-container border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
+          <input placeholder="slug-auto-from-name" value={catForm.slug} onChange={e => setCatForm(f => ({ ...f, slug: slugify(e.target.value) }))}
+            className="bg-surface-container border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface font-mono flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
           <label className="flex items-center gap-3 text-sm font-label font-bold cursor-pointer text-on-surface bg-surface-container px-4 py-3 rounded-xl border border-outline-variant/50">
             <input type="checkbox" checked={catForm.is_active} onChange={e => setCatForm(f => ({ ...f, is_active: e.target.checked }))} className="w-4 h-4 accent-secondary-container" />
             Active
@@ -264,10 +271,10 @@ export default function CategoriesPage() {
                       {showSubForm === cat.id && (
                         <div className="flex flex-wrap items-center gap-3 mb-6 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
                           <input placeholder="Sub-category name" value={subForm.name}
-                            onChange={e => setSubForm(f => ({ ...f, name: e.target.value, slug: f.slug || `${cat.slug}-${slugify(e.target.value)}` }))}
+                            onChange={e => setSubForm(f => ({ ...f, name: e.target.value, slug: editSub ? f.slug : (f.slug || slugify(e.target.value)) }))}
                             className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
-                          <input placeholder="Slug" value={subForm.slug} onChange={e => setSubForm(f => ({ ...f, slug: e.target.value }))}
-                            className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
+                          <input placeholder="slug-auto-from-name" value={subForm.slug} onChange={e => setSubForm(f => ({ ...f, slug: slugify(e.target.value) }))}
+                            className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface font-mono flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
                           <button onClick={saveSubCategory} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm transition-colors">{editSub ? "Update" : "Add"}</button>
                           <button onClick={() => { setShowSubForm(null); setEditSub(null); }} className="bg-surface border border-outline-variant/50 text-on-surface-variant font-label font-bold px-5 py-2.5 rounded-xl text-sm">Cancel</button>
                         </div>

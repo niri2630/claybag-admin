@@ -119,6 +119,23 @@ export const api = {
   resendInvoiceEmail: (orderId: number) =>
     request<{ detail: string }>(`/orders/${orderId}/resend-invoice`, { method: "POST" }),
 
+  // Admin: Edit user
+  updateUser: (userId: number, data: Partial<{ name: string; email: string; phone: string; is_active: boolean; is_admin: boolean }>) =>
+    request<User>(`/users/${userId}`, { method: "PUT", body: JSON.stringify(data) }),
+
+  // Admin: Addresses (any user)
+  getUserAddresses: (userId: number) => request<Address[]>(`/addresses/admin/user/${userId}`),
+  createUserAddress: (userId: number, data: Partial<Address>) =>
+    request<Address>(`/addresses/admin/user/${userId}`, { method: "POST", body: JSON.stringify(data) }),
+  updateAddress: (addressId: number, data: Partial<Address>) =>
+    request<Address>(`/addresses/admin/${addressId}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteAddress: (addressId: number) =>
+    request<void>(`/addresses/admin/${addressId}`, { method: "DELETE" }),
+
+  // Admin: Update a user's company profile
+  updateUserCompanyProfile: (userId: number, data: Partial<CompanyProfile>) =>
+    request<CompanyProfile>(`/company-profile/user/${userId}`, { method: "PUT", body: JSON.stringify(data) }),
+
   // Wallet & Referrals
   getAllWallets: () => request<WalletInfo[]>("/wallet/all"),
   creditWallet: (userId: number, amount: number, description: string) =>
@@ -224,5 +241,6 @@ export interface OrderItem { id: number; product_id: number; product_name?: stri
 export interface TrackingEntry { id: number; status: string; note?: string; created_at: string; }
 export interface Review { id: number; user_id: number; product_id: number; rating: number; comment?: string; is_approved: boolean; created_at: string; user_name: string; product_name: string; }
 export interface CompanyProfile { id: number; user_id: number; company_name: string; business_type: string; gst_number?: string; registered_address?: string; contact_person?: string; description?: string; created_at: string; updated_at?: string; }
+export interface Address { id: number; label: string; name: string; phone: string; address: string; city: string; state?: string | null; pincode: string; is_default: boolean; created_at?: string; }
 export interface WalletInfo { id: number; user_id: number; user_name?: string; user_email?: string; balance: number; created_at?: string; }
 export interface ReferralInfo { id: number; referrer_name?: string; referrer_email?: string; referred_name?: string; referred_email?: string; referral_code: string; status: string; coins_credited: boolean; created_at?: string; completed_at?: string; }

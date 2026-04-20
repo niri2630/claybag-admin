@@ -37,6 +37,28 @@ function formatINR(n: number): string {
   return "\u20B9" + (n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 }
 
+// Escape a single CSV field per RFC 4180 — wrap in quotes if it contains comma, quote, or newline
+function csvField(v: string | number | null | undefined): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+// Client-side CSV export — builds a Blob and triggers browser download
+function exportCsvClient(filename: string, headers: string[], rows: (string | number | null | undefined)[][]) {
+  const lines = [headers.map(csvField).join(","), ...rows.map(r => r.map(csvField).join(","))];
+  const csv = lines.join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>("sales");
   const [start, setStart] = useState(daysAgoISO(30));
@@ -190,13 +212,28 @@ function SalesTab({ start, end }: { start: string; end: string }) {
 
       {/* Revenue trend chart */}
       <div className="bg-surface-container-lowest rounded-[2rem] border border-outline-variant/30 p-8">
-        <div className="flex items-start justify-between mb-6">
+        <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
           <div>
             <h3 className="font-headline font-bold text-xl text-on-surface mb-1">Daily Revenue</h3>
             <p className="text-on-surface-variant text-sm font-medium">
               {data.daily_revenue.length} days · {start} → {end}
             </p>
           </div>
+          {data.daily_revenue.length > 0 && (
+            <button
+              onClick={() =>
+                exportCsvClient(
+                  `claybag-daily-revenue-${start}-to-${end}.csv`,
+                  ["date", "revenue_inr", "orders"],
+                  data.daily_revenue.map(d => [d.date, d.revenue, d.orders])
+                )
+              }
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-on-surface text-surface font-label font-bold text-[11px] uppercase tracking-wider hover:bg-on-surface-variant transition-all"
+            >
+              <span className="material-symbols-outlined text-[16px]">download</span>
+              Download CSV
+            </button>
+          )}
         </div>
         {data.daily_revenue.length === 0 ? (
           <EmptyInline message="No revenue in this date range" />
@@ -238,7 +275,21 @@ function SalesTab({ start, end }: { start: string; end: string }) {
 
       {/* Top products + customers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DataCard title="Top Products" subtitle="By revenue">
+        <DataCard
+          title="Top Products"
+          subtitle="By revenue"
+          action={data.top_products.length > 0 && (
+            <InlineDownloadButton
+              onClick={() =>
+                exportCsvClient(
+                  `claybag-top-products-${start}-to-${end}.csv`,
+                  ["rank", "product_id", "name", "units_sold", "revenue_inr"],
+                  data.top_products.map((p, i) => [i + 1, p.id, p.name, p.units_sold, p.revenue])
+                )
+              }
+            />
+          )}
+        >
           {data.top_products.length === 0 ? (
             <EmptyInline message="No sales yet" />
           ) : (
@@ -257,7 +308,21 @@ function SalesTab({ start, end }: { start: string; end: string }) {
           )}
         </DataCard>
 
-        <DataCard title="Top Customers" subtitle="By spend">
+        <DataCard
+          title="Top Customers"
+          subtitle="By spend"
+          action={data.top_customers.length > 0 && (
+            <InlineDownloadButton
+              onClick={() =>
+                exportCsvClient(
+                  `claybag-top-customers-${start}-to-${end}.csv`,
+                  ["rank", "user_id", "name", "email", "orders", "spent_inr"],
+                  data.top_customers.map((c, i) => [i + 1, c.id, c.name, c.email, c.orders, c.spent])
+                )
+              }
+            />
+          )}
+        >
           {data.top_customers.length === 0 ? (
             <EmptyInline message="No customers yet" />
           ) : (
@@ -600,15 +665,32 @@ function KpiCard({ label, value, icon, tone }: { label: string; value: string; i
   );
 }
 
-function DataCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function DataCard({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="bg-surface-container-lowest rounded-[2rem] border border-outline-variant/30 p-8">
-      <div className="mb-6">
-        <h3 className="font-headline font-bold text-xl text-on-surface mb-1">{title}</h3>
-        {subtitle && <p className="text-on-surface-variant text-sm font-medium">{subtitle}</p>}
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+        <div>
+          <h3 className="font-headline font-bold text-xl text-on-surface mb-1">{title}</h3>
+          {subtitle && <p className="text-on-surface-variant text-sm font-medium">{subtitle}</p>}
+        </div>
+        {action}
       </div>
       {children}
     </div>
+  );
+}
+
+// Small reusable download button for inline use in DataCard actions
+function InlineDownloadButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-on-surface text-surface font-label font-bold text-[11px] uppercase tracking-wider hover:bg-on-surface-variant transition-all disabled:opacity-40"
+    >
+      <span className="material-symbols-outlined text-[16px]">download</span>
+      CSV
+    </button>
   );
 }
 

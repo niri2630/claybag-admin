@@ -325,7 +325,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false });
   const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
@@ -467,7 +467,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -479,6 +479,8 @@ export default function ProductsPage() {
       materials: p.materials || "",
       delivery_info: p.delivery_info || "",
       min_order_qty: p.min_order_qty ?? null,
+      moq_unit: p.moq_unit || "pcs",
+      pricing_mode: (p.pricing_mode === "per_area" ? "per_area" : "per_unit") as "per_unit" | "per_area",
       branding_info: p.branding_info || "",
       branding_methods: p.branding_methods || [],
       size_chart_url: p.size_chart_url || "",
@@ -683,8 +685,49 @@ export default function ProductsPage() {
 
                 <div className="col-span-2 md:col-span-1">
                   <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Minimum Order Qty</label>
-                  <input type="number" min="1" value={form.min_order_qty ?? ""} onChange={e => setForm(f => ({ ...f, min_order_qty: e.target.value === "" ? null : Number(e.target.value) }))}
-                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Leave empty for no MOQ" />
+                  <div className="flex gap-2">
+                    <input type="number" min="1" value={form.min_order_qty ?? ""} onChange={e => setForm(f => ({ ...f, min_order_qty: e.target.value === "" ? null : Number(e.target.value) }))}
+                      className="flex-1 min-w-0 bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="e.g. 10" />
+                    <input type="text" value={form.moq_unit} onChange={e => setForm(f => ({ ...f, moq_unit: e.target.value }))}
+                      list="moq-unit-suggestions"
+                      className="w-28 bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+                      placeholder="pcs" />
+                    <datalist id="moq-unit-suggestions">
+                      <option value="pcs" />
+                      <option value="sq.in" />
+                      <option value="sq.ft" />
+                      <option value="kg" />
+                      <option value="gm" />
+                      <option value="ml" />
+                      <option value="litre" />
+                      <option value="meter" />
+                      <option value="pair" />
+                      <option value="set" />
+                    </datalist>
+                  </div>
+                  <p className="text-[10px] text-on-surface/40 mt-1">Number + unit (e.g. <strong>10 pcs</strong>, <strong>50 sq.in</strong> for stickers)</p>
+                </div>
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">
+                    <span className="material-symbols-outlined text-[14px] align-middle mr-1">calculate</span>
+                    Pricing Mode
+                  </label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setForm(f => ({ ...f, pricing_mode: "per_unit" }))}
+                      className={`flex-1 px-4 py-3.5 rounded-2xl font-label text-xs uppercase tracking-wider transition-all ${form.pricing_mode === "per_unit" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface/70 hover:bg-surface-container-high"}`}>
+                      Per Piece
+                    </button>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, pricing_mode: "per_area", moq_unit: f.moq_unit === "pcs" ? "sq.in" : f.moq_unit }))}
+                      className={`flex-1 px-4 py-3.5 rounded-2xl font-label text-xs uppercase tracking-wider transition-all ${form.pricing_mode === "per_area" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface/70 hover:bg-surface-container-high"}`}>
+                      Per Area
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-on-surface/40 mt-1">
+                    {form.pricing_mode === "per_area"
+                      ? "Customer enters length × breadth × quantity. Slabs match total sq.in. Base price is ₹/sq.in."
+                      : "Standard per-unit pricing. MOQ in pieces."}
+                  </p>
                 </div>
 
                 {/* GST + HSN compliance fields */}

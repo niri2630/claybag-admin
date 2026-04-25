@@ -714,7 +714,12 @@ export default function ProductsPage() {
                     Pricing Mode
                   </label>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => setForm(f => ({ ...f, pricing_mode: "per_unit" }))}
+                    <button type="button" onClick={() => setForm(f => ({
+                      ...f,
+                      pricing_mode: "per_unit",
+                      // Revert area unit back to pieces when switching back
+                      moq_unit: (f.moq_unit === "sq.in" || f.moq_unit === "sq.ft") ? "pcs" : f.moq_unit,
+                    }))}
                       className={`flex-1 px-4 py-3.5 rounded-2xl font-label text-xs uppercase tracking-wider transition-all ${form.pricing_mode === "per_unit" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface/70 hover:bg-surface-container-high"}`}>
                       Per Piece
                     </button>

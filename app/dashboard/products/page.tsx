@@ -334,10 +334,10 @@ export default function ProductsPage() {
   const [uploadColorVariantId, setUploadColorVariantId] = useState<number | null>(null);
 
   // Variant form
-  const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", price_adjustment: 0, stock: 0, sku: "" });
+  const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", variant_unit: "", price_adjustment: 0, stock: 0, sku: "" });
   // Discount form — new model: flat price per unit above min_quantity, optionally per-variant
   const [dForm, setDForm] = useState({ variant_id: null as number | null, min_quantity: 0, price_per_unit: 0 });
-  // Inline editing state for discount slabs: { [slabId]: { variant_id, min_quantity, price_per_unit } }
+  // Inline editing state for discount slabs
   const [editingSlabs, setEditingSlabs] = useState<Record<number, { variant_id: number | null; min_quantity: number; price_per_unit: number }>>({});
 
   async function load() {
@@ -411,7 +411,14 @@ export default function ProductsPage() {
 
   async function addVariant() {
     if (!selected) return;
-    try { await api.addVariant(selected.id, vForm); setVForm({ variant_type: "size", variant_value: "", price_adjustment: 0, stock: 0, sku: "" }); const p = await api.getProduct(selected.id); setSelected(p); }
+    try {
+      // Send variant_unit only if non-empty (otherwise pass null)
+      const payload = { ...vForm, variant_unit: vForm.variant_unit.trim() || undefined };
+      await api.addVariant(selected.id, payload);
+      setVForm({ variant_type: "size", variant_value: "", variant_unit: "", price_adjustment: 0, stock: 0, sku: "" });
+      const p = await api.getProduct(selected.id);
+      setSelected(p);
+    }
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
@@ -999,8 +1006,17 @@ export default function ProductsPage() {
                     
                     <div className="flex flex-wrap items-center gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
                       <VariantClassPicker value={vForm.variant_type} onChange={(v) => setVForm(f => ({ ...f, variant_type: v }))} />
-                      <input placeholder="Trait (e.g. Cobalt, L)" value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface flex-1 min-w-[150px] focus:outline-none" />
-                      <input type="number" placeholder="Price Offset (₹)" value={vForm.price_adjustment || ""} onChange={e => setVForm(f => ({ ...f, price_adjustment: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
+                      <input placeholder={selected.pricing_mode === "per_area" ? "Value (e.g. 9 or 3×3)" : "Trait (e.g. Cobalt, L)"} value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface flex-1 min-w-[150px] focus:outline-none" />
+                      <input placeholder={selected.pricing_mode === "per_area" ? "sq.in" : "Unit (optional)"} list="variant-unit-suggestions" value={vForm.variant_unit} onChange={e => setVForm(f => ({ ...f, variant_unit: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-28 focus:outline-none" />
+                      <datalist id="variant-unit-suggestions">
+                        <option value="sq.in" />
+                        <option value="sq.ft" />
+                        <option value="inch" />
+                        <option value="cm" />
+                        <option value="ml" />
+                        <option value="kg" />
+                      </datalist>
+                      <input type="number" placeholder={selected.pricing_mode === "per_area" ? "Price/pc (₹)" : "Price Offset (₹)"} value={vForm.price_adjustment || ""} onChange={e => setVForm(f => ({ ...f, price_adjustment: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
                       <input type="number" placeholder="Inventory" value={vForm.stock || ""} onChange={e => setVForm(f => ({ ...f, stock: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-24 focus:outline-none" />
                       <input placeholder="SKU/ID" value={vForm.sku} onChange={e => setVForm(f => ({ ...f, sku: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
                       <button onClick={addVariant} className="bg-primary text-on-primary font-label font-bold px-5 py-3 rounded-xl text-sm hover:bg-inverse-surface transition-colors">Append</button>
@@ -1016,7 +1032,7 @@ export default function ProductsPage() {
                           {selected.variants.map(v => (
                             <tr key={v.id} className="hover:bg-surface-container-low transition-colors">
                               <td className="px-4 py-3 font-medium capitalize text-on-surface text-sm">{v.variant_type}</td>
-                              <td className="px-4 py-3 font-bold text-on-surface text-sm">{v.variant_value}</td>
+                              <td className="px-4 py-3 font-bold text-on-surface text-sm">{v.variant_value}{v.variant_unit ? <span className="ml-1 text-on-surface-variant font-medium text-xs">{v.variant_unit}</span> : null}</td>
                               <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.price_adjustment >= 0 ? "+" : ""}₹{v.price_adjustment}</td>
                               <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.stock}</td>
                               <td className="px-4 py-3 text-outline font-medium text-sm">{v.sku || "-"}</td>
@@ -1046,7 +1062,7 @@ export default function ProductsPage() {
                         >
                           <option value="">All Variants</option>
                           {selected.variants.map(v => (
-                            <option key={v.id} value={v.id}>{v.variant_type}: {v.variant_value}</option>
+                            <option key={v.id} value={v.id}>{v.variant_type}: {v.variant_value}{v.variant_unit ? ` ${v.variant_unit}` : ""}</option>
                           ))}
                         </select>
                       </div>
@@ -1082,7 +1098,7 @@ export default function ProductsPage() {
                           const variantLabel = (vid: number | null | undefined) => {
                             if (!vid) return "All Variants";
                             const v = selected.variants?.find(v => v.id === vid);
-                            return v ? `${v.variant_type}: ${v.variant_value}` : `#${vid}`;
+                            return v ? `${v.variant_type}: ${v.variant_value}${v.variant_unit ? ` ${v.variant_unit}` : ""}` : `#${vid}`;
                           };
                           return (
                           <tr key={s.id} className="hover:bg-surface-container-low transition-colors">
@@ -1095,7 +1111,7 @@ export default function ProductsPage() {
                                 >
                                   <option value="">All Variants</option>
                                   {selected.variants.map(v => (
-                                    <option key={v.id} value={v.id}>{v.variant_type}: {v.variant_value}</option>
+                                    <option key={v.id} value={v.id}>{v.variant_type}: {v.variant_value}{v.variant_unit ? ` ${v.variant_unit}` : ""}</option>
                                   ))}
                                 </select>
                               ) : (

@@ -1016,7 +1016,7 @@ export default function ProductsPage() {
                         <option value="ml" />
                         <option value="kg" />
                       </datalist>
-                      <input type="number" placeholder={selected.pricing_mode === "per_area" ? "Price/pc (₹)" : "Price Offset (₹)"} value={vForm.price_adjustment || ""} onChange={e => setVForm(f => ({ ...f, price_adjustment: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
+                      <input type="number" placeholder="Price Offset (₹)" value={vForm.price_adjustment || ""} onChange={e => setVForm(f => ({ ...f, price_adjustment: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
                       <input type="number" placeholder="Inventory" value={vForm.stock || ""} onChange={e => setVForm(f => ({ ...f, stock: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-24 focus:outline-none" />
                       <input placeholder="SKU/ID" value={vForm.sku} onChange={e => setVForm(f => ({ ...f, sku: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
                       <button onClick={addVariant} className="bg-primary text-on-primary font-label font-bold px-5 py-3 rounded-xl text-sm hover:bg-inverse-surface transition-colors">Append</button>

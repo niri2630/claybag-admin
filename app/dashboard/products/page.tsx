@@ -865,20 +865,26 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Selling Price (₹)</label>
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? "Selling Price (₹ / sq.in)" : "Selling Price (₹)"}</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
-                    <input type="number" value={form.base_price} onChange={e => setForm(f => ({ ...f, base_price: Number(e.target.value) }))}
+                    <input type="number" step="0.01" value={form.base_price} onChange={e => setForm(f => ({ ...f, base_price: Number(e.target.value) }))}
                       className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
+                    {form.pricing_mode === "per_area" && (
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ sq.in</span>
+                    )}
                   </div>
                 </div>
                 <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">MRP / Compare Price (₹) <span className="text-outline font-normal normal-case">optional</span></label>
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? "MRP (₹ / sq.in)" : "MRP / Compare Price (₹)"} <span className="text-outline font-normal normal-case">optional</span></label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
-                    <input type="number" value={form.compare_price ?? ""} onChange={e => setForm(f => ({ ...f, compare_price: e.target.value ? Number(e.target.value) : null }))}
+                    <input type="number" step="0.01" value={form.compare_price ?? ""} onChange={e => setForm(f => ({ ...f, compare_price: e.target.value ? Number(e.target.value) : null }))}
                       placeholder="Original price (shown as strikethrough)"
                       className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all placeholder:font-body placeholder:font-normal placeholder:text-sm" />
+                    {form.pricing_mode === "per_area" && (
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ sq.in</span>
+                    )}
                   </div>
                   {form.compare_price && form.base_price > 0 && form.compare_price > form.base_price && (
                     <p className="text-xs text-tertiary mt-1.5 font-label">

@@ -325,7 +325,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false });
   const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
@@ -474,7 +474,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -499,6 +499,7 @@ export default function ProductsPage() {
       is_active: p.is_active,
       has_variants: p.has_variants,
       is_featured: p.is_featured || false,
+      is_new_arrival: p.is_new_arrival || false,
     });
   }
 
@@ -907,6 +908,11 @@ export default function ProductsPage() {
                   <label className="flex items-center justify-between cursor-pointer group">
                     <span className="font-label font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Hot Seller (Featured on Homepage)</span>
                     <input type="checkbox" checked={form.is_featured} onChange={e => setForm(f => ({ ...f, is_featured: e.target.checked }))} className="w-5 h-5 accent-secondary-container rounded" />
+                  </label>
+                  <div className="h-px bg-outline-variant/20 w-full" />
+                  <label className="flex items-center justify-between cursor-pointer group">
+                    <span className="font-label font-bold text-sm text-on-surface group-hover:text-primary transition-colors">New Arrival (Show on /new-arrivals)</span>
+                    <input type="checkbox" checked={form.is_new_arrival} onChange={e => setForm(f => ({ ...f, is_new_arrival: e.target.checked }))} className="w-5 h-5 accent-secondary-container rounded" />
                   </label>
                 </div>
               </div>

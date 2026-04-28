@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { api, Category, Product } from "@/lib/api";
+import { api, Category, Product, Variant } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
 const VARIANT_CLASS_OPTIONS = [
@@ -339,6 +339,45 @@ export default function ProductsPage() {
   const [dForm, setDForm] = useState({ variant_id: null as number | null, min_quantity: 0, price_per_unit: 0 });
   // Inline editing state for discount slabs
   const [editingSlabs, setEditingSlabs] = useState<Record<number, { variant_id: number | null; min_quantity: number; price_per_unit: number }>>({});
+  // Inline editing state for variant rows (only used in option_dropdown mode)
+  const [editingVariants, setEditingVariants] = useState<Record<number, { variant_value: string; option_price: number | null; option_mrp: number | null; stock: number; sku: string }>>({});
+
+  function startEditVariant(v: Variant) {
+    setEditingVariants((prev) => ({
+      ...prev,
+      [v.id]: {
+        variant_value: v.variant_value,
+        option_price: v.option_price ?? null,
+        option_mrp: v.option_mrp ?? null,
+        stock: v.stock,
+        sku: v.sku || "",
+      },
+    }));
+  }
+  function cancelEditVariant(vid: number) {
+    setEditingVariants((prev) => {
+      const next = { ...prev };
+      delete next[vid];
+      return next;
+    });
+  }
+  async function saveEditVariant(vid: number) {
+    if (!selected) return;
+    const draft = editingVariants[vid];
+    if (!draft) return;
+    try {
+      await api.updateVariant(selected.id, vid, {
+        variant_value: draft.variant_value,
+        option_price: draft.option_price,
+        option_mrp: draft.option_mrp,
+        stock: draft.stock,
+        sku: draft.sku || undefined,
+      });
+      cancelEditVariant(vid);
+      const p = await api.getProduct(selected.id);
+      setSelected(p);
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
+  }
 
   async function load() {
     setLoading(true);
@@ -909,34 +948,50 @@ export default function ProductsPage() {
                     className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Additional branding notes..." />
                 </div>
 
-                <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? "Selling Price (₹ / sq.in)" : "Selling Price (₹)"}</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
-                    <input type="number" step="0.01" value={form.base_price} onChange={e => setForm(f => ({ ...f, base_price: Number(e.target.value) }))}
-                      className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
-                    {form.pricing_mode === "per_area" && (
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ sq.in</span>
-                    )}
+                {form.variant_mode_override === "option_dropdown" ? (
+                  <div className="col-span-2 flex flex-col justify-end">
+                    <div className="bg-secondary-container/30 border border-secondary-container rounded-2xl px-5 py-4 flex items-start gap-3">
+                      <span className="material-symbols-outlined text-secondary-container">info</span>
+                      <div>
+                        <p className="font-label font-bold text-sm text-on-surface mb-1">Pricing is set per option below</p>
+                        <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
+                          Each {form.option_label?.toLowerCase() || "size"} you add in the {form.option_label || "Size"} Options section has its own Selling Price + MRP. You don&apos;t need to set a product-level price.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? "MRP (₹ / sq.in)" : "MRP / Compare Price (₹)"} <span className="text-outline font-normal normal-case">optional</span></label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
-                    <input type="number" step="0.01" value={form.compare_price ?? ""} onChange={e => setForm(f => ({ ...f, compare_price: e.target.value ? Number(e.target.value) : null }))}
-                      placeholder="Original price (shown as strikethrough)"
-                      className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all placeholder:font-body placeholder:font-normal placeholder:text-sm" />
-                    {form.pricing_mode === "per_area" && (
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ sq.in</span>
-                    )}
-                  </div>
-                  {form.compare_price && form.base_price > 0 && form.compare_price > form.base_price && (
-                    <p className="text-xs text-tertiary mt-1.5 font-label">
-                      {Math.round(((form.compare_price - form.base_price) / form.compare_price) * 100)}% off
-                    </p>
-                  )}
-                </div>
+                ) : (
+                  <>
+                    <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
+                      <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? "Selling Price (₹ / sq.in)" : "Selling Price (₹)"}</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
+                        <input type="number" step="0.01" value={form.base_price} onChange={e => setForm(f => ({ ...f, base_price: Number(e.target.value) }))}
+                          className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
+                        {form.pricing_mode === "per_area" && (
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ sq.in</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
+                      <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? "MRP (₹ / sq.in)" : "MRP / Compare Price (₹)"} <span className="text-outline font-normal normal-case">optional</span></label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
+                        <input type="number" step="0.01" value={form.compare_price ?? ""} onChange={e => setForm(f => ({ ...f, compare_price: e.target.value ? Number(e.target.value) : null }))}
+                          placeholder="Original price (shown as strikethrough)"
+                          className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all placeholder:font-body placeholder:font-normal placeholder:text-sm" />
+                        {form.pricing_mode === "per_area" && (
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ sq.in</span>
+                        )}
+                      </div>
+                      {form.compare_price && form.base_price > 0 && form.compare_price > form.base_price && (
+                        <p className="text-xs text-tertiary mt-1.5 font-label">
+                          {Math.round(((form.compare_price - form.base_price) / form.compare_price) * 100)}% off
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 <div className="col-span-2 md:col-span-1 flex flex-col justify-center gap-4 bg-surface-container-low rounded-2xl p-5 border border-outline-variant/30">
                   <label className="flex items-center justify-between cursor-pointer group">
@@ -1123,25 +1178,59 @@ export default function ProductsPage() {
                         </thead>
                         <tbody className="divide-y divide-outline-variant/20">
                           {selected.variants.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-on-surface-variant font-medium text-sm">{form.variant_mode_override === "option_dropdown" ? "No options added yet — append your first one above." : "No variations deployed."}</td></tr>}
-                          {selected.variants.map(v => (
-                            <tr key={v.id} className="hover:bg-surface-container-low transition-colors">
-                              {form.variant_mode_override !== "option_dropdown" && (
-                                <td className="px-4 py-3 font-medium capitalize text-on-surface text-sm">{v.variant_type}</td>
-                              )}
-                              <td className="px-4 py-3 font-bold text-on-surface text-sm">{v.variant_value}{v.variant_unit ? <span className="ml-1 text-on-surface-variant font-medium text-xs">{v.variant_unit}</span> : null}</td>
-                              {form.variant_mode_override === "option_dropdown" ? (
-                                <>
-                                  <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.option_price != null ? `₹${v.option_price}` : "—"}</td>
-                                  <td className="px-4 py-3 text-on-surface-variant font-medium text-sm">{v.option_mrp != null ? `₹${v.option_mrp}` : "—"}</td>
-                                </>
-                              ) : (
-                                <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.price_adjustment >= 0 ? "+" : ""}₹{v.price_adjustment}</td>
-                              )}
-                              <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.stock}</td>
-                              <td className="px-4 py-3 text-outline font-medium text-sm">{v.sku || "-"}</td>
-                              <td className="px-4 py-3 text-right"><button onClick={() => deleteVariant(v.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-error hover:bg-error-container transition-colors"><span className="material-symbols-outlined text-[16px]">delete</span></button></td>
-                            </tr>
-                          ))}
+                          {selected.variants.map(v => {
+                            const isEditing = form.variant_mode_override === "option_dropdown" && editingVariants[v.id] != null;
+                            const draft = editingVariants[v.id];
+                            if (isEditing && draft) {
+                              return (
+                                <tr key={v.id} className="bg-secondary-container/10">
+                                  <td className="px-3 py-2">
+                                    <input value={draft.variant_value} onChange={e => setEditingVariants(prev => ({ ...prev, [v.id]: { ...prev[v.id], variant_value: e.target.value } }))} className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-2 py-1.5 text-sm text-on-surface font-medium focus:outline-none" />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input type="number" min="0" step="0.01" value={draft.option_price ?? ""} onChange={e => setEditingVariants(prev => ({ ...prev, [v.id]: { ...prev[v.id], option_price: e.target.value === "" ? null : Number(e.target.value) } }))} className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-2 py-1.5 text-sm text-on-surface font-medium focus:outline-none" />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input type="number" min="0" step="0.01" value={draft.option_mrp ?? ""} onChange={e => setEditingVariants(prev => ({ ...prev, [v.id]: { ...prev[v.id], option_mrp: e.target.value === "" ? null : Number(e.target.value) } }))} className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-2 py-1.5 text-sm text-on-surface font-medium focus:outline-none" />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input type="number" min="0" value={draft.stock} onChange={e => setEditingVariants(prev => ({ ...prev, [v.id]: { ...prev[v.id], stock: Number(e.target.value) } }))} className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-2 py-1.5 text-sm text-on-surface font-medium focus:outline-none" />
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <input value={draft.sku} onChange={e => setEditingVariants(prev => ({ ...prev, [v.id]: { ...prev[v.id], sku: e.target.value } }))} className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-2 py-1.5 text-sm text-on-surface font-medium focus:outline-none" />
+                                  </td>
+                                  <td className="px-3 py-2 text-right whitespace-nowrap">
+                                    <button onClick={() => saveEditVariant(v.id)} className="w-8 h-8 rounded-lg bg-primary text-on-primary flex items-center justify-center mr-1 hover:bg-inverse-surface transition-colors" title="Save"><span className="material-symbols-outlined text-[16px]">check</span></button>
+                                    <button onClick={() => cancelEditVariant(v.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors" title="Cancel"><span className="material-symbols-outlined text-[16px]">close</span></button>
+                                  </td>
+                                </tr>
+                              );
+                            }
+                            return (
+                              <tr key={v.id} className="hover:bg-surface-container-low transition-colors">
+                                {form.variant_mode_override !== "option_dropdown" && (
+                                  <td className="px-4 py-3 font-medium capitalize text-on-surface text-sm">{v.variant_type}</td>
+                                )}
+                                <td className="px-4 py-3 font-bold text-on-surface text-sm">{v.variant_value}{v.variant_unit ? <span className="ml-1 text-on-surface-variant font-medium text-xs">{v.variant_unit}</span> : null}</td>
+                                {form.variant_mode_override === "option_dropdown" ? (
+                                  <>
+                                    <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.option_price != null ? `₹${v.option_price}` : "—"}</td>
+                                    <td className="px-4 py-3 text-on-surface-variant font-medium text-sm">{v.option_mrp != null ? `₹${v.option_mrp}` : "—"}</td>
+                                  </>
+                                ) : (
+                                  <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.price_adjustment >= 0 ? "+" : ""}₹{v.price_adjustment}</td>
+                                )}
+                                <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.stock}</td>
+                                <td className="px-4 py-3 text-outline font-medium text-sm">{v.sku || "-"}</td>
+                                <td className="px-4 py-3 text-right whitespace-nowrap">
+                                  {form.variant_mode_override === "option_dropdown" && (
+                                    <button onClick={() => startEditVariant(v)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors mr-1" title="Edit"><span className="material-symbols-outlined text-[16px]">edit</span></button>
+                                  )}
+                                  <button onClick={() => deleteVariant(v.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-error hover:bg-error-container transition-colors"><span className="material-symbols-outlined text-[16px]">delete</span></button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

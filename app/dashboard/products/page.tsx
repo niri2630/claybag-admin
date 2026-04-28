@@ -325,7 +325,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false });
   const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
@@ -334,7 +334,7 @@ export default function ProductsPage() {
   const [uploadColorVariantId, setUploadColorVariantId] = useState<number | null>(null);
 
   // Variant form
-  const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", variant_unit: "", price_adjustment: 0, stock: 0, sku: "" });
+  const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", variant_unit: "", price_adjustment: 0, option_price: null as number | null, option_mrp: null as number | null, stock: 0, sku: "" });
   // Discount form — new model: flat price per unit above min_quantity, optionally per-variant
   const [dForm, setDForm] = useState({ variant_id: null as number | null, min_quantity: 0, price_per_unit: 0 });
   // Inline editing state for discount slabs
@@ -415,7 +415,7 @@ export default function ProductsPage() {
       // Send variant_unit only if non-empty (otherwise pass null)
       const payload = { ...vForm, variant_unit: vForm.variant_unit.trim() || undefined };
       await api.addVariant(selected.id, payload);
-      setVForm({ variant_type: "size", variant_value: "", variant_unit: "", price_adjustment: 0, stock: 0, sku: "" });
+      setVForm({ variant_type: "size", variant_value: "", variant_unit: "", price_adjustment: 0, option_price: null, option_mrp: null, stock: 0, sku: "" });
       const p = await api.getProduct(selected.id);
       setSelected(p);
     }
@@ -474,7 +474,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -488,6 +488,8 @@ export default function ProductsPage() {
       min_order_qty: p.min_order_qty ?? null,
       moq_unit: p.moq_unit || "pcs",
       pricing_mode: (p.pricing_mode === "per_area" ? "per_area" : "per_unit") as "per_unit" | "per_area",
+      variant_mode_override: p.variant_mode_override === "option_dropdown" ? "option_dropdown" : null,
+      option_label: p.option_label || "",
       branding_info: p.branding_info || "",
       branding_methods: p.branding_methods || [],
       size_chart_url: p.size_chart_url || "",
@@ -742,6 +744,48 @@ export default function ProductsPage() {
                       : "Standard per-unit pricing. MOQ in pieces."}
                   </p>
                 </div>
+
+                {/* Variant Mode override — for products like standees, photo frames, table-top displays
+                    that should use a single dropdown selector instead of the variation matrix */}
+                <div className="col-span-2 md:col-span-1">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">
+                    <span className="material-symbols-outlined text-[14px] align-middle mr-1">tune</span>
+                    Variant Selector
+                  </label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setForm(f => ({ ...f, variant_mode_override: null, option_label: "" }))}
+                      className={`flex-1 px-4 py-3.5 rounded-2xl font-label text-xs uppercase tracking-wider transition-all ${form.variant_mode_override == null ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface/70 hover:bg-surface-container-high"}`}>
+                      Default (Matrix)
+                    </button>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, variant_mode_override: "option_dropdown", option_label: f.option_label || "Size" }))}
+                      className={`flex-1 px-4 py-3.5 rounded-2xl font-label text-xs uppercase tracking-wider transition-all ${form.variant_mode_override === "option_dropdown" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface/70 hover:bg-surface-container-high"}`}>
+                      Dropdown
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-on-surface/40 mt-1">
+                    {form.variant_mode_override === "option_dropdown"
+                      ? "Customer picks ONE option from a dropdown. Each option has its own price + MRP."
+                      : "Default behaviour from category (matrix grid or chips)."}
+                  </p>
+                </div>
+
+                {form.variant_mode_override === "option_dropdown" && (
+                  <div className="col-span-2 md:col-span-1">
+                    <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">
+                      <span className="material-symbols-outlined text-[14px] align-middle mr-1">label</span>
+                      Dropdown Label
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={40}
+                      value={form.option_label}
+                      onChange={e => setForm(f => ({ ...f, option_label: e.target.value }))}
+                      className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+                      placeholder="e.g. Size, Frame Style, Format"
+                    />
+                    <p className="text-[10px] text-on-surface/40 mt-1">Header shown above the dropdown on the product page.</p>
+                  </div>
+                )}
 
                 {/* GST + HSN compliance fields */}
                 <div className="col-span-2 md:col-span-1">
@@ -1028,7 +1072,14 @@ export default function ProductsPage() {
                         <option value="ml" />
                         <option value="kg" />
                       </datalist>
-                      <input type="number" placeholder="Price Offset (₹)" value={vForm.price_adjustment || ""} onChange={e => setVForm(f => ({ ...f, price_adjustment: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
+                      {selected.variant_mode_override === "option_dropdown" ? (
+                        <>
+                          <input type="number" min="0" step="0.01" placeholder="Selling Price (₹)" value={vForm.option_price ?? ""} onChange={e => setVForm(f => ({ ...f, option_price: e.target.value === "" ? null : Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-36 focus:outline-none" />
+                          <input type="number" min="0" step="0.01" placeholder="MRP (₹)" value={vForm.option_mrp ?? ""} onChange={e => setVForm(f => ({ ...f, option_mrp: e.target.value === "" ? null : Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
+                        </>
+                      ) : (
+                        <input type="number" placeholder="Price Offset (₹)" value={vForm.price_adjustment || ""} onChange={e => setVForm(f => ({ ...f, price_adjustment: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
+                      )}
                       <input type="number" placeholder="Inventory" value={vForm.stock || ""} onChange={e => setVForm(f => ({ ...f, stock: Number(e.target.value) }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-24 focus:outline-none" />
                       <input placeholder="SKU/ID" value={vForm.sku} onChange={e => setVForm(f => ({ ...f, sku: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-32 focus:outline-none" />
                       <button onClick={addVariant} className="bg-primary text-on-primary font-label font-bold px-5 py-3 rounded-xl text-sm hover:bg-inverse-surface transition-colors">Append</button>
@@ -1037,15 +1088,26 @@ export default function ProductsPage() {
                     <div className="overflow-hidden rounded-2xl border border-outline-variant/30">
                       <table className="w-full text-left">
                         <thead className="bg-surface-container">
-                          <tr><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Class</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Trait</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Offset</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Inv</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">SKU</th><th className="px-4 py-3"></th></tr>
+                          {selected.variant_mode_override === "option_dropdown" ? (
+                            <tr><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Class</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Option</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Selling ₹</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">MRP ₹</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Inv</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">SKU</th><th className="px-4 py-3"></th></tr>
+                          ) : (
+                            <tr><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Class</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Trait</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Offset</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Inv</th><th className="px-4 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">SKU</th><th className="px-4 py-3"></th></tr>
+                          )}
                         </thead>
                         <tbody className="divide-y divide-outline-variant/20">
-                          {selected.variants.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-on-surface-variant font-medium text-sm">No variations deployed.</td></tr>}
+                          {selected.variants.length === 0 && <tr><td colSpan={selected.variant_mode_override === "option_dropdown" ? 7 : 6} className="px-4 py-8 text-center text-on-surface-variant font-medium text-sm">No variations deployed.</td></tr>}
                           {selected.variants.map(v => (
                             <tr key={v.id} className="hover:bg-surface-container-low transition-colors">
                               <td className="px-4 py-3 font-medium capitalize text-on-surface text-sm">{v.variant_type}</td>
                               <td className="px-4 py-3 font-bold text-on-surface text-sm">{v.variant_value}{v.variant_unit ? <span className="ml-1 text-on-surface-variant font-medium text-xs">{v.variant_unit}</span> : null}</td>
-                              <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.price_adjustment >= 0 ? "+" : ""}₹{v.price_adjustment}</td>
+                              {selected.variant_mode_override === "option_dropdown" ? (
+                                <>
+                                  <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.option_price != null ? `₹${v.option_price}` : "—"}</td>
+                                  <td className="px-4 py-3 text-on-surface-variant font-medium text-sm">{v.option_mrp != null ? `₹${v.option_mrp}` : "—"}</td>
+                                </>
+                              ) : (
+                                <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.price_adjustment >= 0 ? "+" : ""}₹{v.price_adjustment}</td>
+                              )}
                               <td className="px-4 py-3 text-on-surface font-medium text-sm">{v.stock}</td>
                               <td className="px-4 py-3 text-outline font-medium text-sm">{v.sku || "-"}</td>
                               <td className="px-4 py-3 text-right"><button onClick={() => deleteVariant(v.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-error hover:bg-error-container transition-colors"><span className="material-symbols-outlined text-[16px]">delete</span></button></td>

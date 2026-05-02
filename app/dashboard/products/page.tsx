@@ -451,10 +451,20 @@ export default function ProductsPage() {
   async function addVariant() {
     if (!selected) return;
     try {
-      // Send variant_unit only if non-empty (otherwise pass null)
-      const payload = { ...vForm, variant_unit: vForm.variant_unit.trim() || undefined };
+      // For option_dropdown products the variant_type is dictated by option_label
+      // (so the slab "Applies To" picker, web dropdown headers, etc. all show the
+      // admin-chosen label like "pages: 12" instead of a stale "size"). For other
+      // modes, keep whatever the admin picked in the class picker.
+      const enforcedType = form.variant_mode_override === "option_dropdown"
+        ? (form.option_label || "Size").trim().toLowerCase()
+        : vForm.variant_type;
+      const payload = {
+        ...vForm,
+        variant_type: enforcedType,
+        variant_unit: vForm.variant_unit.trim() || undefined,
+      };
       await api.addVariant(selected.id, payload);
-      setVForm({ variant_type: "size", variant_value: "", variant_unit: "", price_adjustment: 0, option_price: null, option_mrp: null, stock: 0, sku: "" });
+      setVForm({ variant_type: enforcedType, variant_value: "", variant_unit: "", price_adjustment: 0, option_price: null, option_mrp: null, stock: 0, sku: "" });
       const p = await api.getProduct(selected.id);
       setSelected(p);
     }

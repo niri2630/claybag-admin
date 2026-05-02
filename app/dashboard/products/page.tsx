@@ -1127,7 +1127,7 @@ export default function ProductsPage() {
                       <div className="flex flex-wrap items-end gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
                         <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
                           <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">{form.option_label || "Option"} Name</label>
-                          <input placeholder="e.g. A4, A3, 4×6 in" value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value, variant_type: "size" }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none" />
+                          <input placeholder="e.g. A4, A3, 4×6 in" value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value, variant_type: (form.option_label || "Size").trim().toLowerCase() }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none" />
                         </div>
                         <div className="flex flex-col gap-1 w-36">
                           <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">Selling Price (₹)</label>
@@ -1145,7 +1145,7 @@ export default function ProductsPage() {
                           <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">SKU</label>
                           <input placeholder="optional" value={vForm.sku} onChange={e => setVForm(f => ({ ...f, sku: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none" />
                         </div>
-                        <button onClick={() => { setVForm(f => ({ ...f, variant_type: "size" })); addVariant(); }} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-inverse-surface transition-colors h-[42px]">Append Option</button>
+                        <button onClick={() => { setVForm(f => ({ ...f, variant_type: (form.option_label || "Size").trim().toLowerCase() })); setTimeout(() => addVariant(), 0); }} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-inverse-surface transition-colors h-[42px]">Append Option</button>
                       </div>
                     ) : (
                       <div className="flex flex-wrap items-center gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">

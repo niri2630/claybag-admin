@@ -4,13 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api, Coupon, CouponCreate } from "@/lib/api";
 
-type StatusFilter = "all" | "active" | "scheduled" | "expired" | "used" | "disabled";
+type StatusFilter = "all" | "active" | "scheduled" | "expired" | "used" | "exhausted" | "disabled";
 
 const STATUS_BADGE: Record<Coupon["status"], string> = {
   active: "bg-secondary-container/30 text-on-secondary-container border-secondary-container",
   scheduled: "bg-surface-container-high text-on-surface-variant border-outline-variant",
   expired: "bg-amber-100 text-amber-900 border-amber-300",
   used: "bg-purple-100 text-purple-900 border-purple-300",
+  exhausted: "bg-purple-100 text-purple-900 border-purple-300",
   disabled: "bg-error-container text-on-error-container border-error",
 };
 
@@ -41,6 +42,9 @@ export default function CouponsPage() {
     min_order_amount: null,
     valid_from: toLocalInput(now.toISOString()),
     valid_until: toLocalInput(inOneHour.toISOString()),
+    usage_limit: null,
+    usage_limit_per_user: null,
+    first_n_orders_only: null,
   });
   const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
@@ -84,8 +88,11 @@ export default function CouponsPage() {
         min_order_amount: form.min_order_amount,
         valid_from: fromLocalInput(form.valid_from),
         valid_until: fromLocalInput(form.valid_until),
+        usage_limit: form.usage_limit,
+        usage_limit_per_user: form.usage_limit_per_user,
+        first_n_orders_only: form.first_n_orders_only,
       });
-      setForm((f) => ({ ...f, code: "", discount_value: 0, min_order_amount: null }));
+      setForm((f) => ({ ...f, code: "", discount_value: 0, min_order_amount: null, usage_limit: null, usage_limit_per_user: null, first_n_orders_only: null }));
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not create coupon");
@@ -186,6 +193,43 @@ export default function CouponsPage() {
             className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-secondary-container"
           />
 
+          <div className="border-t border-outline-variant/30 pt-4 mb-4">
+            <p className="font-label text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-3">Usage Caps <span className="text-outline normal-case font-normal">all optional</span></p>
+
+            <label className="font-label text-[10px] uppercase tracking-wider font-bold text-on-surface-variant block mb-1">Global usage limit</label>
+            <input
+              type="number"
+              min="1"
+              value={form.usage_limit ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, usage_limit: e.target.value === "" ? null : Number(e.target.value) }))}
+              placeholder="Unlimited"
+              className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-2.5 mb-1 focus:outline-none focus:ring-2 focus:ring-secondary-container"
+            />
+            <p className="text-[10px] text-on-surface/50 mb-3">Total redemptions across all customers. Blank = no global cap (otherwise one-time).</p>
+
+            <label className="font-label text-[10px] uppercase tracking-wider font-bold text-on-surface-variant block mb-1">Per-customer limit</label>
+            <input
+              type="number"
+              min="1"
+              value={form.usage_limit_per_user ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, usage_limit_per_user: e.target.value === "" ? null : Number(e.target.value) }))}
+              placeholder="Unlimited"
+              className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-2.5 mb-1 focus:outline-none focus:ring-2 focus:ring-secondary-container"
+            />
+            <p className="text-[10px] text-on-surface/50 mb-3">Max times each customer can redeem this code.</p>
+
+            <label className="font-label text-[10px] uppercase tracking-wider font-bold text-on-surface-variant block mb-1">New customers only</label>
+            <input
+              type="number"
+              min="1"
+              value={form.first_n_orders_only ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, first_n_orders_only: e.target.value === "" ? null : Number(e.target.value) }))}
+              placeholder="Anyone"
+              className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-2.5 mb-1 focus:outline-none focus:ring-2 focus:ring-secondary-container"
+            />
+            <p className="text-[10px] text-on-surface/50 mb-2">Valid only on customer&apos;s first N orders. e.g. <strong>3</strong> = first 3 orders.</p>
+          </div>
+
           <label className="font-label text-[10px] uppercase tracking-widest font-bold text-on-surface-variant block mb-2">Valid From</label>
           <input
             type="datetime-local"
@@ -221,7 +265,7 @@ export default function CouponsPage() {
               onChange={(e) => setSearch(e.target.value)}
               className="flex-1 min-w-[200px] bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-secondary-container"
             />
-            {(["all", "active", "scheduled", "expired", "used", "disabled"] as StatusFilter[]).map((f) => (
+            {(["all", "active", "scheduled", "expired", "used", "exhausted", "disabled"] as StatusFilter[]).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -262,7 +306,18 @@ export default function CouponsPage() {
                       )}
                       <div>From: {new Date(c.valid_from).toLocaleString("en-IN")}</div>
                       <div>Until: {new Date(c.valid_until).toLocaleString("en-IN")}</div>
-                      {c.used_at && (
+                      <div className="pt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px]">
+                        <span className="font-bold">
+                          Used: {c.usage_count}{c.usage_limit != null ? ` / ${c.usage_limit}` : ""}
+                        </span>
+                        {c.usage_limit_per_user != null && (
+                          <span>· max <strong>{c.usage_limit_per_user}</strong>/user</span>
+                        )}
+                        {c.first_n_orders_only != null && (
+                          <span>· first <strong>{c.first_n_orders_only}</strong> orders only</span>
+                        )}
+                      </div>
+                      {c.used_at && c.usage_limit == null && (
                         <div className="mt-1 text-purple-700">Used on order #{c.used_by_order_id} at {new Date(c.used_at).toLocaleString("en-IN")}</div>
                       )}
                     </div>

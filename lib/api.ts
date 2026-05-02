@@ -261,10 +261,14 @@ export interface Coupon {
   valid_from: string;
   valid_until: string;
   is_active: boolean;
+  usage_limit: number | null;
+  usage_limit_per_user: number | null;
+  first_n_orders_only: number | null;
+  usage_count: number;
   used_at: string | null;
   used_by_order_id: number | null;
   created_at: string;
-  status: "active" | "scheduled" | "expired" | "used" | "disabled";
+  status: "active" | "scheduled" | "expired" | "used" | "exhausted" | "disabled";
 }
 export interface CouponCreate {
   code: string;
@@ -273,4 +277,7 @@ export interface CouponCreate {
   min_order_amount?: number | null;
   valid_from: string;
   valid_until: string;
+  usage_limit?: number | null;
+  usage_limit_per_user?: number | null;
+  first_n_orders_only?: number | null;
 }

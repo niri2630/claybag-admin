@@ -86,6 +86,13 @@ export const api = {
   addVariant: (productId: number, data: Partial<Variant>) => request<Variant>(`/products/${productId}/variants`, { method: "POST", body: JSON.stringify(data) }),
   updateVariant: (productId: number, variantId: number, data: Partial<Variant>) => request<Variant>(`/products/${productId}/variants/${variantId}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteVariant: (productId: number, variantId: number) => request(`/products/${productId}/variants/${variantId}`, { method: "DELETE" }),
+
+  // Coupons (promo codes)
+  listCoupons: () => request<Coupon[]>("/coupons"),
+  createCoupon: (data: CouponCreate) => request<Coupon>("/coupons", { method: "POST", body: JSON.stringify(data) }),
+  updateCoupon: (id: number, data: { valid_until?: string; is_active?: boolean }) =>
+    request<Coupon>(`/coupons/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteCoupon: (id: number) => request<{ ok: boolean }>(`/coupons/${id}`, { method: "DELETE" }),
   addDiscountSlab: (productId: number, data: { variant_id?: number | null; min_quantity: number; price_per_unit?: number; discount_percentage?: number }) => request<DiscountSlab>(`/products/${productId}/discounts`, { method: "POST", body: JSON.stringify(data) }),
   updateDiscountSlab: (productId: number, slabId: number, data: { variant_id?: number | null; min_quantity?: number; price_per_unit?: number }) => request<DiscountSlab>(`/products/${productId}/discounts/${slabId}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteDiscountSlab: (productId: number, slabId: number) => request(`/products/${productId}/discounts/${slabId}`, { method: "DELETE" }),
@@ -237,7 +244,7 @@ export interface ProductImage { id: number; image_url: string; is_primary: boole
 export interface Variant { id: number; variant_type: string; variant_value: string; variant_unit?: string | null; price_adjustment: number; option_price?: number | null; option_mrp?: number | null; stock: number; sku?: string; }
 export interface DiscountSlab { id: number; variant_id?: number | null; min_quantity: number; price_per_unit?: number | null; discount_percentage?: number | null; }
 export interface User { id: number; name: string; email: string; phone?: string; is_admin: boolean; is_active: boolean; created_at: string; }
-export interface Order { id: number; order_number?: string; user_id: number; status: string; total_amount: number; shipping_name: string; shipping_phone: string; shipping_address: string; shipping_city: string; shipping_state?: string; shipping_pincode: string; notes?: string; taxable_amount?: number | null; cgst_amount?: number; sgst_amount?: number; igst_amount?: number; created_at: string; items: OrderItem[]; tracking: TrackingEntry[]; }
+export interface Order { id: number; order_number?: string; user_id: number; status: string; total_amount: number; shipping_name: string; shipping_phone: string; shipping_address: string; shipping_city: string; shipping_state?: string; shipping_pincode: string; notes?: string; taxable_amount?: number | null; cgst_amount?: number; sgst_amount?: number; igst_amount?: number; coupon_id?: number | null; coupon_discount?: number; coins_applied?: number; referral_discount?: number; created_at: string; items: OrderItem[]; tracking: TrackingEntry[]; }
 export interface OrderItem { id: number; product_id: number; product_name?: string; product_slug?: string; product_image?: string; variant_id?: number; variant_label?: string; quantity: number; unit_price: number; total_price: number; discount_applied: number; dimension_length?: number | null; dimension_breadth?: number | null; computed_area?: number | null; area_rate?: number | null; }
 export interface TrackingEntry { id: number; status: string; note?: string; created_at: string; }
 export interface Review { id: number; user_id: number; product_id: number; rating: number; comment?: string; is_approved: boolean; created_at: string; user_name: string; product_name: string; }
@@ -245,3 +252,25 @@ export interface CompanyProfile { id: number; user_id: number; company_name: str
 export interface Address { id: number; label: string; name: string; phone: string; address: string; city: string; state?: string | null; pincode: string; is_default: boolean; created_at?: string; }
 export interface WalletInfo { id: number; user_id: number; user_name?: string; user_email?: string; balance: number; created_at?: string; }
 export interface ReferralInfo { id: number; referrer_name?: string; referrer_email?: string; referred_name?: string; referred_email?: string; referral_code: string; status: string; coins_credited: boolean; created_at?: string; completed_at?: string; }
+export interface Coupon {
+  id: number;
+  code: string;
+  discount_type: "percent" | "flat";
+  discount_value: number;
+  min_order_amount: number | null;
+  valid_from: string;
+  valid_until: string;
+  is_active: boolean;
+  used_at: string | null;
+  used_by_order_id: number | null;
+  created_at: string;
+  status: "active" | "scheduled" | "expired" | "used" | "disabled";
+}
+export interface CouponCreate {
+  code: string;
+  discount_type: "percent" | "flat";
+  discount_value: number;
+  min_order_amount?: number | null;
+  valid_from: string;
+  valid_until: string;
+}

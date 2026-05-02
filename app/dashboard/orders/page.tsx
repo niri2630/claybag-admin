@@ -258,6 +258,27 @@ export default function OrdersPage() {
                       ))}
                     </tbody>
                   </table>
+                  {/* Discount summary — surfaces redeemed promo / referral / coins */}
+                  {(((selected.coupon_discount || 0) > 0) || ((selected.referral_discount || 0) > 0) || ((selected.coins_applied || 0) > 0)) && (
+                    <div className="bg-surface-container-lowest px-6 py-3 border-t border-outline-variant/30 flex flex-wrap gap-x-6 gap-y-1 text-xs">
+                      {(selected.coupon_discount || 0) > 0 && (
+                        <span className="font-label font-bold uppercase tracking-wider text-purple-700">
+                          <span className="material-symbols-outlined text-[14px] align-middle mr-1">local_offer</span>
+                          Promo redeemed{selected.coupon_id ? ` · #${selected.coupon_id}` : ""} · −₹{(selected.coupon_discount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                      {(selected.referral_discount || 0) > 0 && (
+                        <span className="font-label font-bold uppercase tracking-wider text-emerald-700">
+                          Referral · −₹{(selected.referral_discount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                      {(selected.coins_applied || 0) > 0 && (
+                        <span className="font-label font-bold uppercase tracking-wider text-amber-700">
+                          ClayCoins · −₹{(selected.coins_applied || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className="bg-surface-container-lowest px-6 py-5 border-t border-outline-variant/30 flex justify-end items-center gap-6">
                     <span className="font-label font-bold text-sm uppercase tracking-wider text-on-surface-variant">Net Aggregate</span>
                     <span className="font-headline font-bold text-3xl text-primary">₹{selected.total_amount.toLocaleString()}</span>

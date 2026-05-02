@@ -11,6 +11,7 @@ const nav = [
   { href: "/dashboard/reviews", label: "Reviews", icon: "rate_review" },
   { href: "/dashboard/users", label: "Users", icon: "group" },
   { href: "/dashboard/reports", label: "Reports", icon: "analytics" },
+  { href: "/dashboard/coupons", label: "Promo Codes", icon: "local_offer" },
 ];
 
 export default function Sidebar() {

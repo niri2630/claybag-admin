@@ -90,8 +90,10 @@ export const api = {
   // Coupons (promo codes)
   listCoupons: () => request<Coupon[]>("/coupons"),
   createCoupon: (data: CouponCreate) => request<Coupon>("/coupons", { method: "POST", body: JSON.stringify(data) }),
-  updateCoupon: (id: number, data: { valid_until?: string; is_active?: boolean }) =>
-    request<Coupon>(`/coupons/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateCoupon: (
+    id: number,
+    data: { valid_until?: string; is_active?: boolean; assigned_user_ids?: number[] | null },
+  ) => request<Coupon>(`/coupons/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteCoupon: (id: number) => request<{ ok: boolean }>(`/coupons/${id}`, { method: "DELETE" }),
   addDiscountSlab: (productId: number, data: { variant_id?: number | null; min_quantity: number; price_per_unit?: number; discount_percentage?: number }) => request<DiscountSlab>(`/products/${productId}/discounts`, { method: "POST", body: JSON.stringify(data) }),
   updateDiscountSlab: (productId: number, slabId: number, data: { variant_id?: number | null; min_quantity?: number; price_per_unit?: number }) => request<DiscountSlab>(`/products/${productId}/discounts/${slabId}`, { method: "PUT", body: JSON.stringify(data) }),
@@ -252,6 +254,7 @@ export interface CompanyProfile { id: number; user_id: number; company_name: str
 export interface Address { id: number; label: string; name: string; phone: string; address: string; city: string; state?: string | null; pincode: string; is_default: boolean; created_at?: string; }
 export interface WalletInfo { id: number; user_id: number; user_name?: string; user_email?: string; balance: number; created_at?: string; }
 export interface ReferralInfo { id: number; referrer_name?: string; referrer_email?: string; referred_name?: string; referred_email?: string; referral_code: string; status: string; coins_credited: boolean; created_at?: string; completed_at?: string; }
+export interface CouponAssignee { id: number; name: string; email: string; }
 export interface Coupon {
   id: number;
   code: string;
@@ -269,6 +272,8 @@ export interface Coupon {
   used_by_order_id: number | null;
   created_at: string;
   status: "active" | "scheduled" | "expired" | "used" | "exhausted" | "disabled";
+  assigned_user_ids: number[];
+  assigned_users: CouponAssignee[];
 }
 export interface CouponCreate {
   code: string;
@@ -280,4 +285,5 @@ export interface CouponCreate {
   usage_limit?: number | null;
   usage_limit_per_user?: number | null;
   first_n_orders_only?: number | null;
+  assigned_user_ids?: number[];
 }

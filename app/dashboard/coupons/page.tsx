@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { api, Coupon, CouponCreate } from "@/lib/api";
+import { api, Coupon, CouponCreate, User } from "@/lib/api";
 
 type StatusFilter = "all" | "active" | "scheduled" | "expired" | "used" | "exhausted" | "disabled";
 
@@ -49,6 +49,46 @@ export default function CouponsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
+  // Multi-user picker state (for the create form)
+  const [users, setUsers] = useState<User[]>([]);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [userQuery, setUserQuery] = useState("");
+  const [pickedUserIds, setPickedUserIds] = useState<number[]>([]);
+
+  // Per-card "manage assignees" inline editor — keyed by coupon id
+  const [editingAssignees, setEditingAssignees] = useState<number | null>(null);
+  const [editAssigneeQuery, setEditAssigneeQuery] = useState("");
+  const [editPickedIds, setEditPickedIds] = useState<number[]>([]);
+  const [savingAssignees, setSavingAssignees] = useState(false);
+
+  async function loadUsersOnce() {
+    if (usersLoaded) return;
+    try {
+      const list = await api.getUsers();
+      setUsers(list);
+      setUsersLoaded(true);
+    } catch {
+      // Non-fatal — picker just stays empty.
+    }
+  }
+  useEffect(() => { loadUsersOnce(); }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const filteredUsers = useMemo(() => {
+    const q = userQuery.trim().toLowerCase();
+    if (!q) return users.slice(0, 8);
+    return users.filter((u) =>
+      u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q),
+    ).slice(0, 8);
+  }, [users, userQuery]);
+
+  const filteredEditUsers = useMemo(() => {
+    const q = editAssigneeQuery.trim().toLowerCase();
+    if (!q) return users.slice(0, 8);
+    return users.filter((u) =>
+      u.email.toLowerCase().includes(q) || u.name.toLowerCase().includes(q),
+    ).slice(0, 8);
+  }, [users, editAssigneeQuery]);
+
   async function load() {
     try {
       setLoading(true);
@@ -91,8 +131,11 @@ export default function CouponsPage() {
         usage_limit: form.usage_limit,
         usage_limit_per_user: form.usage_limit_per_user,
         first_n_orders_only: form.first_n_orders_only,
+        assigned_user_ids: pickedUserIds,
       });
       setForm((f) => ({ ...f, code: "", discount_value: 0, min_order_amount: null, usage_limit: null, usage_limit_per_user: null, first_n_orders_only: null }));
+      setPickedUserIds([]);
+      setUserQuery("");
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Could not create coupon");
@@ -114,6 +157,27 @@ export default function CouponsPage() {
       await api.deleteCoupon(c.id);
       await load();
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
+  }
+
+  async function saveAssignees(c: Coupon) {
+    setSavingAssignees(true);
+    try {
+      await api.updateCoupon(c.id, { assigned_user_ids: editPickedIds });
+      setEditingAssignees(null);
+      setEditAssigneeQuery("");
+      setEditPickedIds([]);
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Could not update assignees");
+    } finally {
+      setSavingAssignees(false);
+    }
+  }
+
+  function startEditingAssignees(c: Coupon) {
+    setEditingAssignees(c.id);
+    setEditPickedIds(c.assigned_user_ids || []);
+    setEditAssigneeQuery("");
   }
 
   function copyCode(c: Coupon) {
@@ -230,6 +294,63 @@ export default function CouponsPage() {
             <p className="text-[10px] text-on-surface/50 mb-2">Valid only on customer&apos;s first N orders. e.g. <strong>3</strong> = first 3 orders.</p>
           </div>
 
+          <div className="border-t border-outline-variant/30 pt-4 mb-4">
+            <p className="font-label text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-2">
+              Who can use this <span className="text-outline normal-case font-normal">leave empty for anyone with the code</span>
+            </p>
+            <input
+              type="text"
+              value={userQuery}
+              onChange={(e) => setUserQuery(e.target.value)}
+              placeholder="Search by name or email…"
+              className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-2.5 mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-secondary-container"
+            />
+            {filteredUsers.length > 0 && (
+              <div className="max-h-40 overflow-y-auto border border-outline-variant/30 rounded-xl divide-y divide-outline-variant/30 mb-2">
+                {filteredUsers.map((u) => {
+                  const picked = pickedUserIds.includes(u.id);
+                  return (
+                    <button
+                      key={u.id}
+                      type="button"
+                      onClick={() =>
+                        setPickedUserIds((ids) =>
+                          ids.includes(u.id) ? ids.filter((x) => x !== u.id) : [...ids, u.id],
+                        )
+                      }
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between gap-2 transition-colors ${picked ? "bg-secondary-container/30" : "hover:bg-surface-container"}`}
+                    >
+                      <span className="truncate">
+                        <span className="font-bold">{u.name}</span>
+                        <span className="text-on-surface-variant"> · {u.email}</span>
+                      </span>
+                      <span className={`material-symbols-outlined text-[16px] ${picked ? "text-primary" : "text-outline"}`}>
+                        {picked ? "check_circle" : "radio_button_unchecked"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {pickedUserIds.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {pickedUserIds.map((id) => {
+                  const u = users.find((x) => x.id === id);
+                  if (!u) return null;
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1 bg-secondary-container/40 text-on-secondary-container text-[11px] px-2 py-1 rounded-full">
+                      {u.name}
+                      <button type="button" onClick={() => setPickedUserIds((ids) => ids.filter((x) => x !== id))} className="hover:text-error">
+                        <span className="material-symbols-outlined text-[12px] leading-none">close</span>
+                      </button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <p className="text-[10px] text-on-surface/50">{pickedUserIds.length === 0 ? "Open: anyone who knows the code can redeem it." : `Pinned to ${pickedUserIds.length} customer${pickedUserIds.length === 1 ? "" : "s"}.`}</p>
+          </div>
+
           <label className="font-label text-[10px] uppercase tracking-widest font-bold text-on-surface-variant block mb-2">Valid From</label>
           <input
             type="datetime-local"
@@ -320,7 +441,89 @@ export default function CouponsPage() {
                       {c.used_at && c.usage_limit == null && (
                         <div className="mt-1 text-purple-700">Used on order #{c.used_by_order_id} at {new Date(c.used_at).toLocaleString("en-IN")}</div>
                       )}
+                      <div className="pt-1 text-[11px]">
+                        {c.assigned_users && c.assigned_users.length > 0 ? (
+                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-full">
+                            <span className="material-symbols-outlined text-[12px] leading-none">lock</span>
+                            Pinned to {c.assigned_users.length} customer{c.assigned_users.length === 1 ? "" : "s"}
+                          </span>
+                        ) : (
+                          <span className="text-on-surface-variant italic">Open · anyone with code</span>
+                        )}
+                      </div>
                     </div>
+                    {editingAssignees === c.id && (
+                      <div className="mb-3 p-3 bg-surface-container rounded-2xl border border-outline-variant/40">
+                        <p className="font-label text-[10px] uppercase tracking-widest font-bold text-on-surface-variant mb-2">Pin to customers</p>
+                        <input
+                          type="text"
+                          value={editAssigneeQuery}
+                          onChange={(e) => setEditAssigneeQuery(e.target.value)}
+                          placeholder="Search by name or email…"
+                          className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-3 py-2 mb-2 text-xs focus:outline-none focus:ring-2 focus:ring-secondary-container"
+                        />
+                        {filteredEditUsers.length > 0 && (
+                          <div className="max-h-32 overflow-y-auto border border-outline-variant/30 rounded-lg divide-y divide-outline-variant/30 mb-2">
+                            {filteredEditUsers.map((u) => {
+                              const picked = editPickedIds.includes(u.id);
+                              return (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  onClick={() =>
+                                    setEditPickedIds((ids) =>
+                                      ids.includes(u.id) ? ids.filter((x) => x !== u.id) : [...ids, u.id],
+                                    )
+                                  }
+                                  className={`w-full text-left px-2 py-1.5 text-[11px] flex items-center justify-between gap-2 transition-colors ${picked ? "bg-secondary-container/30" : "hover:bg-surface-container-high"}`}
+                                >
+                                  <span className="truncate">
+                                    <span className="font-bold">{u.name}</span>
+                                    <span className="text-on-surface-variant"> · {u.email}</span>
+                                  </span>
+                                  <span className={`material-symbols-outlined text-[14px] ${picked ? "text-primary" : "text-outline"}`}>
+                                    {picked ? "check_circle" : "radio_button_unchecked"}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {editPickedIds.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {editPickedIds.map((id) => {
+                              const u = users.find((x) => x.id === id);
+                              if (!u) return null;
+                              return (
+                                <span key={id} className="inline-flex items-center gap-1 bg-secondary-container/40 text-on-secondary-container text-[10px] px-2 py-0.5 rounded-full">
+                                  {u.name}
+                                  <button type="button" onClick={() => setEditPickedIds((ids) => ids.filter((x) => x !== id))} className="hover:text-error">
+                                    <span className="material-symbols-outlined text-[11px] leading-none">close</span>
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => saveAssignees(c)}
+                            disabled={savingAssignees}
+                            className="bg-primary text-on-primary text-[11px] uppercase tracking-widest font-bold px-3 py-1.5 rounded-full hover:bg-inverse-surface transition-colors disabled:opacity-50"
+                          >
+                            {savingAssignees ? "Saving…" : "Save"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setEditingAssignees(null); setEditAssigneeQuery(""); setEditPickedIds([]); }}
+                            className="text-on-surface-variant hover:text-on-surface text-[11px] uppercase tracking-widest font-bold px-3 py-1.5"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex gap-3 flex-wrap">
                       <button onClick={() => copyCode(c)} className={`flex items-center gap-1 text-[11px] uppercase tracking-widest font-bold transition-colors ${copiedId === c.id ? "text-emerald-700" : "text-on-surface-variant hover:text-on-surface"}`}>
                         <span className="material-symbols-outlined text-[14px]">{copiedId === c.id ? "check" : "content_copy"}</span>
@@ -328,6 +531,10 @@ export default function CouponsPage() {
                       </button>
                       {c.status !== "used" && (
                         <>
+                          <button onClick={() => startEditingAssignees(c)} className="flex items-center gap-1 text-[11px] uppercase tracking-widest font-bold text-on-surface-variant hover:text-on-surface transition-colors">
+                            <span className="material-symbols-outlined text-[14px]">group</span>
+                            Manage who
+                          </button>
                           <button onClick={() => toggleActive(c)} className="flex items-center gap-1 text-[11px] uppercase tracking-widest font-bold text-on-surface-variant hover:text-on-surface transition-colors">
                             <span className="material-symbols-outlined text-[14px]">{c.is_active ? "toggle_on" : "toggle_off"}</span>
                             {c.is_active ? "Disable" : "Enable"}

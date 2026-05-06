@@ -701,9 +701,22 @@ export default function ProductsPage() {
                 </div>
                 
                 <div className="col-span-2">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Description</label>
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2 flex items-center justify-between">
+                    <span>Description</span>
+                    <span className={`font-mono text-[10px] tracking-normal normal-case ${
+                      form.description.trim().length === 0
+                        ? "text-red-600"
+                        : form.description.trim().length < 100
+                          ? "text-amber-600"
+                          : "text-emerald-700"
+                    }`}>
+                      {form.description.trim().length} chars
+                      {form.description.trim().length === 0 && " — required for SEO"}
+                      {form.description.trim().length > 0 && form.description.trim().length < 100 && " — aim for 100+ for better SEO"}
+                    </span>
+                  </label>
                   <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={4}
-                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Product description for customers..." />
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Product description for customers... (write 100-300 words for best SEO — describe materials, use cases, customisation options, and target audience)" />
                 </div>
 
                 <div className="col-span-2">
@@ -1136,8 +1149,11 @@ export default function ProductsPage() {
                     {form.variant_mode_override === "option_dropdown" ? (
                       <div className="flex flex-wrap items-end gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
                         <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
-                          <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">{form.option_label || "Option"} Name</label>
-                          <input placeholder="e.g. A4, A3, 4×6 in" value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value, variant_type: (form.option_label || "Size").trim().toLowerCase() }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none" />
+                          <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">
+                            {form.option_label || "Option"} Name
+                            {selected.pricing_mode === "per_area" && <span className="ml-1 text-on-surface-variant/70 normal-case">(area in sq.in — just the number, e.g. 10)</span>}
+                          </label>
+                          <input placeholder={selected.pricing_mode === "per_area" ? "e.g. 10, 25, 50" : "e.g. A4, A3, 4×6 in"} value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value, variant_type: (form.option_label || "Size").trim().toLowerCase(), variant_unit: selected.pricing_mode === "per_area" ? "sq.in" : f.variant_unit }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none" />
                         </div>
                         <div className="flex flex-col gap-1 w-36">
                           <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">Selling Price (₹)</label>
@@ -1155,7 +1171,7 @@ export default function ProductsPage() {
                           <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">SKU</label>
                           <input placeholder="optional" value={vForm.sku} onChange={e => setVForm(f => ({ ...f, sku: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none" />
                         </div>
-                        <button onClick={() => { setVForm(f => ({ ...f, variant_type: (form.option_label || "Size").trim().toLowerCase() })); setTimeout(() => addVariant(), 0); }} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-inverse-surface transition-colors h-[42px]">Append Option</button>
+                        <button onClick={() => { setVForm(f => ({ ...f, variant_type: (form.option_label || "Size").trim().toLowerCase(), variant_unit: selected.pricing_mode === "per_area" ? "sq.in" : f.variant_unit })); setTimeout(() => addVariant(), 0); }} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-inverse-surface transition-colors h-[42px]">Append Option</button>
                       </div>
                     ) : (
                       <div className="flex flex-wrap items-center gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { api, Category, Product, Variant } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import SeoFieldsEditor from "@/components/SeoFieldsEditor";
+import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog";
 
 const VARIANT_CLASS_OPTIONS = [
   "size", "color", "material", "paper", "finish", "capacity", "width", "pages",
@@ -408,16 +409,25 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  async function deleteProduct(id: number) {
-    if (!confirm("Are you sure you want to delete this product? This cannot be undone.")) return;
+  const [deleteProductTarget, setDeleteProductTarget] = useState<{ id: number; name: string } | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState(false);
+
+  function requestDeleteProduct(p: Product) {
+    setDeleteProductTarget({ id: p.id, name: p.name });
+  }
+
+  async function confirmDeleteProduct() {
+    if (!deleteProductTarget) return;
+    setDeletingProduct(true);
     try {
-      const res = await api.deleteProduct(id) as { detail?: string };
+      const res = await api.deleteProduct(deleteProductTarget.id) as { detail?: string };
       if (res?.detail?.includes("deactivated")) {
         alert("This product has existing orders and was deactivated (hidden) instead of permanently deleted.");
       }
-      setSelected(null); setEditMode(false); load();
+      setSelected(null); setEditMode(false); setDeleteProductTarget(null); load();
     }
     catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to delete product"); }
+    finally { setDeletingProduct(false); }
   }
 
   async function uploadImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -653,7 +663,7 @@ export default function ProductsPage() {
                       <div className="flex items-center justify-between">
                         <p className="font-headline font-bold text-on-surface line-clamp-1 flex-1">{p.name}</p>
                         <button
-                          onClick={(e) => { e.stopPropagation(); deleteProduct(p.id); }}
+                          onClick={(e) => { e.stopPropagation(); requestDeleteProduct(p); }}
                           className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg hover:bg-error-container text-error/40 hover:text-error transition-colors ml-2"
                         >
                           <span className="material-symbols-outlined text-[16px]">delete</span>
@@ -686,7 +696,7 @@ export default function ProductsPage() {
                  <span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2.5 rounded-2xl">{editMode ? "edit_note" : "add_box"}</span>
                  <h3 className="font-headline font-bold text-xl text-on-surface">{editMode ? "Architecting Product" : "New Artifact"}</h3>
                  <div className="ml-auto flex gap-3">
-                    {editMode && selected && <button onClick={() => deleteProduct(selected.id)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-error-container text-on-error-container hover:bg-error transition-colors text-white"><span className="material-symbols-outlined text-[20px]">delete</span></button>}
+                    {editMode && selected && <button onClick={() => requestDeleteProduct(selected)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-error-container text-on-error-container hover:bg-error transition-colors text-white"><span className="material-symbols-outlined text-[20px]">delete</span></button>}
                     <button onClick={saveProduct} className="bg-primary text-on-primary font-label font-bold px-6 py-2 rounded-xl text-sm transition-colors shadow-md">{editMode ? "Save Changes" : "Forge Artifact"}</button>
                  </div>
               </div>
@@ -1406,6 +1416,24 @@ export default function ProductsPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDeleteDialog
+        open={!!deleteProductTarget}
+        busy={deletingProduct}
+        title="Delete Product"
+        confirmText={null}
+        warning={
+          deleteProductTarget ? (
+            <span>
+              Permanently delete <strong>{deleteProductTarget.name}</strong>? All its images, variants,
+              and discount slabs will also be removed. Products with existing orders are automatically
+              deactivated instead.
+            </span>
+          ) : null
+        }
+        onConfirm={confirmDeleteProduct}
+        onCancel={() => setDeleteProductTarget(null)}
+      />
     </div>
   );
 }

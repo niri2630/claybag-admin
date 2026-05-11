@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, Category, SubCategory } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import SeoFieldsEditor from "@/components/SeoFieldsEditor";
+import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog";
 
 // Robust slugify: lowercase, replace any non-alphanumeric with -, collapse repeats, trim dashes.
 // Example: "Hoodies & jackets" -> "hoodies-jackets", "Gifts Under 99" -> "gifts-under-99"
@@ -113,6 +114,14 @@ export default function CategoriesPage() {
 
   const [error, setError] = useState("");
 
+  // Delete confirmation dialog state
+  const [deleteTarget, setDeleteTarget] = useState<
+    | { kind: "category"; id: number; name: string; subCount: number }
+    | { kind: "subcategory"; id: number; name: string; categoryName: string }
+    | null
+  >(null);
+  const [deleting, setDeleting] = useState(false);
+
   async function load() {
     setLoading(true);
     try { setCategories(await api.getCategories()); } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
@@ -131,9 +140,31 @@ export default function CategoriesPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  async function deleteCategory(id: number) {
-    if (!confirm("Delete category and all its subcategories?")) return;
-    try { await api.deleteCategory(id); load(); } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
+  function requestDeleteCategory(cat: Category) {
+    setDeleteTarget({ kind: "category", id: cat.id, name: cat.name, subCount: cat.subcategories?.length || 0 });
+  }
+
+  function requestDeleteSubCategory(sub: SubCategory, catName: string) {
+    setDeleteTarget({ kind: "subcategory", id: sub.id, name: sub.name, categoryName: catName });
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setError("");
+    try {
+      if (deleteTarget.kind === "category") {
+        await api.deleteCategory(deleteTarget.id);
+      } else {
+        await api.deleteSubCategory(deleteTarget.id);
+      }
+      setDeleteTarget(null);
+      load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function saveSubCategory() {
@@ -147,10 +178,7 @@ export default function CategoriesPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  async function deleteSubCategory(id: number) {
-    if (!confirm("Delete subcategory?")) return;
-    try { await api.deleteSubCategory(id); load(); } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
-  }
+  // deleteSubCategory replaced by ConfirmDeleteDialog flow above
 
   function startEditCat(cat: Category) {
     setEditCat(cat);
@@ -296,7 +324,7 @@ export default function CategoriesPage() {
                   <button onClick={() => startEditCat(cat)} className="flex items-center gap-1 text-xs font-label font-bold bg-surface-container text-on-surface hover:bg-surface-container-high px-4 py-2 rounded-xl transition-colors">
                     <span className="material-symbols-outlined text-[16px]">edit</span> Edit
                   </button>
-                  <button onClick={() => deleteCategory(cat.id)} className="flex items-center gap-1 text-xs font-label font-bold bg-error-container/50 text-error hover:bg-error-container px-4 py-2 rounded-xl transition-colors">
+                  <button onClick={() => requestDeleteCategory(cat)} className="flex items-center gap-1 text-xs font-label font-bold bg-error-container/50 text-error hover:bg-error-container px-4 py-2 rounded-xl transition-colors">
                     <span className="material-symbols-outlined text-[16px]">delete</span>
                   </button>
                 </div>
@@ -356,7 +384,7 @@ export default function CategoriesPage() {
                                 <button onClick={() => startEditSub(sub)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-high text-on-surface transition-colors">
                                   <span className="material-symbols-outlined text-[16px]">edit</span>
                                 </button>
-                                <button onClick={() => deleteSubCategory(sub.id)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-error-container text-error transition-colors">
+                                <button onClick={() => requestDeleteSubCategory(sub, cat.name)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-error-container text-error transition-colors">
                                   <span className="material-symbols-outlined text-[16px]">delete</span>
                                 </button>
                               </div>
@@ -372,6 +400,35 @@ export default function CategoriesPage() {
           ))}
         </div>
       )}
+
+      <ConfirmDeleteDialog
+        open={!!deleteTarget}
+        busy={deleting}
+        title={deleteTarget?.kind === "category" ? "Delete Category" : "Delete Subcategory"}
+        confirmText={deleteTarget ? deleteTarget.name : null}
+        warning={
+          deleteTarget?.kind === "category" ? (
+            <span>
+              You are about to delete <strong>{deleteTarget.name}</strong>. This is a
+              <strong className="text-error"> permanent cascade delete</strong> — every subcategory
+              and every product (with its images, variants, and discount slabs) inside this category
+              will be wiped from the database.
+            </span>
+          ) : deleteTarget ? (
+            <span>
+              You are about to delete <strong>{deleteTarget.name}</strong> (under {deleteTarget.categoryName}).
+              All products in this subcategory will also be deleted permanently.
+            </span>
+          ) : null
+        }
+        impact={
+          deleteTarget?.kind === "category" && deleteTarget.subCount > 0
+            ? `${deleteTarget.subCount} subcategor${deleteTarget.subCount === 1 ? "y" : "ies"} + every product inside`
+            : undefined
+        }
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

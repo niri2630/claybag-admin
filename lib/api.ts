@@ -95,6 +95,12 @@ export const api = {
     data: { valid_until?: string; is_active?: boolean; assigned_user_ids?: number[] | null },
   ) => request<Coupon>(`/coupons/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteCoupon: (id: number) => request<{ ok: boolean }>(`/coupons/${id}`, { method: "DELETE" }),
+
+  // Page-level SEO overrides (for static routes like /faqs, /about-us)
+  listPageSeo: () => request<PageSeo[]>("/page-seo"),
+  createPageSeo: (data: PageSeoCreate) => request<PageSeo>("/page-seo", { method: "POST", body: JSON.stringify(data) }),
+  updatePageSeo: (id: number, data: PageSeoUpdate) => request<PageSeo>(`/page-seo/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deletePageSeo: (id: number) => request<void>(`/page-seo/${id}`, { method: "DELETE" }),
   addDiscountSlab: (productId: number, data: { variant_id?: number | null; min_quantity: number; price_per_unit?: number; discount_percentage?: number }) => request<DiscountSlab>(`/products/${productId}/discounts`, { method: "POST", body: JSON.stringify(data) }),
   updateDiscountSlab: (productId: number, slabId: number, data: { variant_id?: number | null; min_quantity?: number; price_per_unit?: number }) => request<DiscountSlab>(`/products/${productId}/discounts/${slabId}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteDiscountSlab: (productId: number, slabId: number) => request(`/products/${productId}/discounts/${slabId}`, { method: "DELETE" }),
@@ -239,9 +245,20 @@ export interface GstSummary {
 }
 
 // Types
-export interface Category { id: number; name: string; slug: string; icon: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }
-export interface SubCategory { id: number; name: string; slug: string; category_id: number; image_url?: string; is_active: boolean; }
-export interface Product { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; hsn_code?: string | null; gst_rate?: number | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
+export interface SeoFields {
+  seo_title?: string | null;
+  seo_description?: string | null;
+  seo_keywords?: string | null;
+  og_image?: string | null;
+  seo_canonical?: string | null;
+  seo_noindex?: boolean | null;
+}
+export interface Category extends SeoFields { id: number; name: string; slug: string; icon: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }
+export interface SubCategory extends SeoFields { id: number; name: string; slug: string; category_id: number; image_url?: string; is_active: boolean; }
+export interface Product extends SeoFields { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; hsn_code?: string | null; gst_rate?: number | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
+export interface PageSeo extends SeoFields { id: number; route: string; label?: string | null; created_at?: string | null; updated_at?: string | null; }
+export interface PageSeoCreate extends SeoFields { route: string; label?: string | null; }
+export interface PageSeoUpdate extends SeoFields { label?: string | null; }
 export interface ProductImage { id: number; image_url: string; is_primary: boolean; sort_order: number; variant_id?: number | null; }
 export interface Variant { id: number; variant_type: string; variant_value: string; variant_unit?: string | null; price_adjustment: number; option_price?: number | null; option_mrp?: number | null; stock: number; sku?: string; }
 export interface DiscountSlab { id: number; variant_id?: number | null; min_quantity: number; price_per_unit?: number | null; discount_percentage?: number | null; }

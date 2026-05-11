@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, Category, SubCategory } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
+import SeoFieldsEditor from "@/components/SeoFieldsEditor";
 
 // Robust slugify: lowercase, replace any non-alphanumeric with -, collapse repeats, trim dashes.
 // Example: "Hoodies & jackets" -> "hoodies-jackets", "Gifts Under 99" -> "gifts-under-99"
@@ -101,11 +102,12 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true);
 
   // Category form
-  const [catForm, setCatForm] = useState({ name: "", slug: "", icon: "category", is_active: true });
+  const emptyCatSeo = { seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false };
+  const [catForm, setCatForm] = useState({ name: "", slug: "", icon: "category", is_active: true, ...emptyCatSeo });
   const [editCat, setEditCat] = useState<Category | null>(null);
 
   // SubCategory form
-  const [subForm, setSubForm] = useState({ name: "", slug: "", category_id: 0, is_active: true });
+  const [subForm, setSubForm] = useState({ name: "", slug: "", category_id: 0, is_active: true, ...emptyCatSeo });
   const [editSub, setEditSub] = useState<SubCategory | null>(null);
   const [showSubForm, setShowSubForm] = useState<number | null>(null);
 
@@ -124,7 +126,7 @@ export default function CategoriesPage() {
     try {
       if (editCat) { await api.updateCategory(editCat.id, catForm); setEditCat(null); }
       else { await api.createCategory({ ...catForm }); }
-      setCatForm({ name: "", slug: "", icon: "category", is_active: true });
+      setCatForm({ name: "", slug: "", icon: "category", is_active: true, ...emptyCatSeo });
       load();
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
@@ -139,7 +141,7 @@ export default function CategoriesPage() {
     try {
       if (editSub) { await api.updateSubCategory(editSub.id, subForm); setEditSub(null); }
       else { await api.createSubCategory({ ...subForm }); }
-      setSubForm({ name: "", slug: "", category_id: 0, is_active: true });
+      setSubForm({ name: "", slug: "", category_id: 0, is_active: true, ...emptyCatSeo });
       setShowSubForm(null);
       load();
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
@@ -152,18 +154,40 @@ export default function CategoriesPage() {
 
   function startEditCat(cat: Category) {
     setEditCat(cat);
-    setCatForm({ name: cat.name, slug: cat.slug, icon: cat.icon || "category", is_active: cat.is_active });
+    setCatForm({
+      name: cat.name,
+      slug: cat.slug,
+      icon: cat.icon || "category",
+      is_active: cat.is_active,
+      seo_title: cat.seo_title ?? null,
+      seo_description: cat.seo_description ?? null,
+      seo_keywords: cat.seo_keywords ?? null,
+      og_image: cat.og_image ?? null,
+      seo_canonical: cat.seo_canonical ?? null,
+      seo_noindex: !!cat.seo_noindex,
+    });
   }
 
   function startAddSub(catId: number) {
     setEditSub(null);
-    setSubForm({ name: "", slug: "", category_id: catId, is_active: true });
+    setSubForm({ name: "", slug: "", category_id: catId, is_active: true, ...emptyCatSeo });
     setShowSubForm(catId);
   }
 
   function startEditSub(sub: SubCategory) {
     setEditSub(sub);
-    setSubForm({ name: sub.name, slug: sub.slug, category_id: sub.category_id, is_active: sub.is_active });
+    setSubForm({
+      name: sub.name,
+      slug: sub.slug,
+      category_id: sub.category_id,
+      is_active: sub.is_active,
+      seo_title: sub.seo_title ?? null,
+      seo_description: sub.seo_description ?? null,
+      seo_keywords: sub.seo_keywords ?? null,
+      og_image: sub.og_image ?? null,
+      seo_canonical: sub.seo_canonical ?? null,
+      seo_noindex: !!sub.seo_noindex,
+    });
     setShowSubForm(sub.category_id);
   }
 
@@ -211,11 +235,30 @@ export default function CategoriesPage() {
             {editCat ? "Update" : "Add"} <span className="material-symbols-outlined text-[18px]">add</span>
           </motion.button>
           {editCat && (
-            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { setEditCat(null); setCatForm({ name: "", slug: "", icon: "category", is_active: true }); }} className="bg-surface-container border border-outline-variant/50 text-on-surface-variant font-label font-bold px-6 py-3 rounded-xl text-sm">
+            <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { setEditCat(null); setCatForm({ name: "", slug: "", icon: "category", is_active: true, ...emptyCatSeo }); }} className="bg-surface-container border border-outline-variant/50 text-on-surface-variant font-label font-bold px-6 py-3 rounded-xl text-sm">
               Cancel
             </motion.button>
           )}
         </div>
+
+        {/* SEO override — only show when editing an existing category */}
+        {editCat && (
+          <div className="mt-6">
+            <SeoFieldsEditor
+              value={{
+                seo_title: catForm.seo_title,
+                seo_description: catForm.seo_description,
+                seo_keywords: catForm.seo_keywords,
+                og_image: catForm.og_image,
+                seo_canonical: catForm.seo_canonical,
+                seo_noindex: catForm.seo_noindex,
+              }}
+              onChange={(next) => setCatForm((f) => ({ ...f, ...next, seo_noindex: !!next.seo_noindex }))}
+              defaultTitle={catForm.name ? `${catForm.name} — ClayBag` : undefined}
+              scopeLabel="this category"
+            />
+          </div>
+        )}
       </motion.div>
 
       {loading ? (
@@ -269,14 +312,31 @@ export default function CategoriesPage() {
                   >
                     <div className="border-t border-outline-variant/20 px-8 py-6 bg-surface-container-lowest">
                       {showSubForm === cat.id && (
-                        <div className="flex flex-wrap items-center gap-3 mb-6 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
-                          <input placeholder="Sub-category name" value={subForm.name}
-                            onChange={e => setSubForm(f => ({ ...f, name: e.target.value, slug: editSub ? f.slug : (f.slug || slugify(e.target.value)) }))}
-                            className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
-                          <input placeholder="slug-auto-from-name" value={subForm.slug} onChange={e => setSubForm(f => ({ ...f, slug: slugify(e.target.value) }))}
-                            className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface font-mono flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
-                          <button onClick={saveSubCategory} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm transition-colors">{editSub ? "Update" : "Add"}</button>
-                          <button onClick={() => { setShowSubForm(null); setEditSub(null); }} className="bg-surface border border-outline-variant/50 text-on-surface-variant font-label font-bold px-5 py-2.5 rounded-xl text-sm">Cancel</button>
+                        <div className="mb-6 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <input placeholder="Sub-category name" value={subForm.name}
+                              onChange={e => setSubForm(f => ({ ...f, name: e.target.value, slug: editSub ? f.slug : (f.slug || slugify(e.target.value)) }))}
+                              className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
+                            <input placeholder="slug-auto-from-name" value={subForm.slug} onChange={e => setSubForm(f => ({ ...f, slug: slugify(e.target.value) }))}
+                              className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface font-mono flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
+                            <button onClick={saveSubCategory} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm transition-colors">{editSub ? "Update" : "Add"}</button>
+                            <button onClick={() => { setShowSubForm(null); setEditSub(null); }} className="bg-surface border border-outline-variant/50 text-on-surface-variant font-label font-bold px-5 py-2.5 rounded-xl text-sm">Cancel</button>
+                          </div>
+                          {editSub && (
+                            <SeoFieldsEditor
+                              value={{
+                                seo_title: subForm.seo_title,
+                                seo_description: subForm.seo_description,
+                                seo_keywords: subForm.seo_keywords,
+                                og_image: subForm.og_image,
+                                seo_canonical: subForm.seo_canonical,
+                                seo_noindex: subForm.seo_noindex,
+                              }}
+                              onChange={(next) => setSubForm((f) => ({ ...f, ...next, seo_noindex: !!next.seo_noindex }))}
+                              defaultTitle={subForm.name ? `${subForm.name} — ${cat.name} — ClayBag` : undefined}
+                              scopeLabel="this subcategory"
+                            />
+                          )}
                         </div>
                       )}
                       

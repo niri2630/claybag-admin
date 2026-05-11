@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { api, Category, Product, Variant } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
+import SeoFieldsEditor from "@/components/SeoFieldsEditor";
 
 const VARIANT_CLASS_OPTIONS = [
   "size", "color", "material", "paper", "finish", "capacity", "width", "pages",
@@ -325,7 +326,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
   const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
@@ -523,7 +524,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -551,6 +552,12 @@ export default function ProductsPage() {
       has_variants: p.has_variants,
       is_featured: p.is_featured || false,
       is_new_arrival: p.is_new_arrival || false,
+      seo_title: p.seo_title ?? null,
+      seo_description: p.seo_description ?? null,
+      seo_keywords: p.seo_keywords ?? null,
+      og_image: p.og_image ?? null,
+      seo_canonical: p.seo_canonical ?? null,
+      seo_noindex: !!p.seo_noindex,
     });
   }
 
@@ -1037,6 +1044,24 @@ export default function ProductsPage() {
                     <input type="checkbox" checked={form.is_new_arrival} onChange={e => setForm(f => ({ ...f, is_new_arrival: e.target.checked }))} className="w-5 h-5 accent-secondary-container rounded" />
                   </label>
                 </div>
+              </div>
+
+              {/* SEO override block (collapsible) */}
+              <div className="mt-6">
+                <SeoFieldsEditor
+                  value={{
+                    seo_title: form.seo_title,
+                    seo_description: form.seo_description,
+                    seo_keywords: form.seo_keywords,
+                    og_image: form.og_image,
+                    seo_canonical: form.seo_canonical,
+                    seo_noindex: form.seo_noindex,
+                  }}
+                  onChange={(next) => setForm((f) => ({ ...f, ...next, seo_noindex: !!next.seo_noindex }))}
+                  defaultTitle={form.name ? `${form.name} — ClayBag` : undefined}
+                  defaultDescription={form.description ? form.description.slice(0, 160) : undefined}
+                  scopeLabel="this product"
+                />
               </div>
             </motion.div>
           )}

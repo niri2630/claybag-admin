@@ -327,7 +327,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
   const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
@@ -534,7 +534,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -562,6 +562,8 @@ export default function ProductsPage() {
       has_variants: p.has_variants,
       is_featured: p.is_featured || false,
       is_new_arrival: p.is_new_arrival || false,
+      is_enquiry_only: p.is_enquiry_only || false,
+      price_range_max: p.price_range_max ?? null,
       seo_title: p.seo_title ?? null,
       seo_description: p.seo_description ?? null,
       seo_keywords: p.seo_keywords ?? null,
@@ -1053,7 +1055,49 @@ export default function ProductsPage() {
                     <span className="font-label font-bold text-sm text-on-surface group-hover:text-primary transition-colors">New Arrival (Show on /new-arrivals)</span>
                     <input type="checkbox" checked={form.is_new_arrival} onChange={e => setForm(f => ({ ...f, is_new_arrival: e.target.checked }))} className="w-5 h-5 accent-secondary-container rounded" />
                   </label>
+                  <div className="h-px bg-outline-variant/20 w-full" />
+                  <label className="flex items-center justify-between cursor-pointer group">
+                    <span className="font-label font-bold text-sm text-on-surface group-hover:text-primary transition-colors">Enquiry Only (price on request — shows &quot;Click to Enquire&quot;)</span>
+                    <input type="checkbox" checked={form.is_enquiry_only} onChange={e => setForm(f => ({ ...f, is_enquiry_only: e.target.checked, has_variants: e.target.checked ? false : f.has_variants, variant_mode_override: e.target.checked ? null : f.variant_mode_override, pricing_mode: e.target.checked ? "per_unit" : f.pricing_mode }))} className="w-5 h-5 accent-secondary-container rounded" />
+                  </label>
                 </div>
+
+                {form.is_enquiry_only && (
+                  <div className="mt-4 p-4 rounded-2xl bg-secondary-container/20 border border-secondary-container/40">
+                    <p className="text-[11px] uppercase font-bold tracking-widest text-on-surface-variant mb-2">Price range (shown on site)</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Min (₹)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={form.base_price || ""}
+                          onChange={(e) => setForm((f) => ({ ...f, base_price: Number(e.target.value) || 0 }))}
+                          className="w-full px-3 py-2.5 rounded-xl bg-surface border border-outline-variant text-sm outline-none focus:border-primary"
+                          placeholder="e.g. 500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold block mb-1">Max (₹)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          value={form.price_range_max ?? ""}
+                          onChange={(e) => setForm((f) => ({ ...f, price_range_max: e.target.value === "" ? null : Number(e.target.value) }))}
+                          className="w-full px-3 py-2.5 rounded-xl bg-surface border border-outline-variant text-sm outline-none focus:border-primary"
+                          placeholder="e.g. 2000"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-on-surface-variant mt-2 leading-relaxed">
+                      The site will display <strong>&quot;₹{form.base_price || 0} – ₹{form.price_range_max ?? "?"}&quot;</strong> instead of an actual price.
+                      Customers see a <strong>&quot;Click to Enquire&quot;</strong> button (no cart). Enquiries email to <code>orders@claybag.in</code>.
+                      Variants, MOQ, and discount slabs are disabled in this mode.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* SEO override block (collapsible) */}

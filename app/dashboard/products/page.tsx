@@ -396,6 +396,20 @@ export default function ProductsPage() {
   async function saveProduct() {
     setError("");
     if (!form.subcategory_id) { setError("Please select a sub-category"); return; }
+    if (form.is_enquiry_only) {
+      if (!form.base_price || form.base_price <= 0) {
+        setError("Enquiry products need a Min ₹ value for the price range");
+        return;
+      }
+      if (form.price_range_max == null || form.price_range_max <= 0) {
+        setError("Enquiry products need a Max ₹ value for the price range");
+        return;
+      }
+      if (form.price_range_max <= form.base_price) {
+        setError("Max ₹ must be higher than Min ₹");
+        return;
+      }
+    }
     try {
       if (editMode && selected) {
         const updated = await api.updateProduct(selected.id, form);

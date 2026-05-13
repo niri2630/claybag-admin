@@ -347,6 +347,10 @@ export default function CategoriesPage() {
                               className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
                             <input placeholder="slug-auto-from-name" value={subForm.slug} onChange={e => setSubForm(f => ({ ...f, slug: slugify(e.target.value) }))}
                               className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface font-mono flex-1 min-w-[200px] focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
+                            <label className="flex items-center gap-2 text-sm font-label font-bold cursor-pointer text-on-surface bg-surface-container-lowest border border-outline-variant/50 px-4 py-2.5 rounded-xl">
+                              <input type="checkbox" checked={subForm.is_active} onChange={e => setSubForm(f => ({ ...f, is_active: e.target.checked }))} className="w-4 h-4 accent-secondary-container" />
+                              Active
+                            </label>
                             <button onClick={saveSubCategory} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm transition-colors">{editSub ? "Update" : "Add"}</button>
                             <button onClick={() => { setShowSubForm(null); setEditSub(null); }} className="bg-surface border border-outline-variant/50 text-on-surface-variant font-label font-bold px-5 py-2.5 rounded-xl text-sm">Cancel</button>
                           </div>
@@ -381,6 +385,20 @@ export default function CategoriesPage() {
                                 {!sub.is_active && <span className="text-[9px] uppercase font-bold tracking-wider text-error opacity-80 block mt-0.5">Inactive</span>}
                               </div>
                               <div className="flex gap-1">
+                                <button
+                                  onClick={async () => {
+                                    try { await api.updateSubCategory(sub.id, { is_active: !sub.is_active }); load(); }
+                                    catch (e: unknown) { setError(e instanceof Error ? e.message : "Toggle failed"); }
+                                  }}
+                                  title={sub.is_active ? "Hide subcategory (set inactive)" : "Show subcategory (set active)"}
+                                  className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                                    sub.is_active
+                                      ? "hover:bg-surface-container-high text-on-surface"
+                                      : "bg-error-container/30 hover:bg-error-container text-error"
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">{sub.is_active ? "visibility" : "visibility_off"}</span>
+                                </button>
                                 <button onClick={() => startEditSub(sub)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-surface-container-high text-on-surface transition-colors">
                                   <span className="material-symbols-outlined text-[16px]">edit</span>
                                 </button>

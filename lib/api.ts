@@ -86,6 +86,7 @@ export const api = {
   addVariant: (productId: number, data: Partial<Variant>) => request<Variant>(`/products/${productId}/variants`, { method: "POST", body: JSON.stringify(data) }),
   updateVariant: (productId: number, variantId: number, data: Partial<Variant>) => request<Variant>(`/products/${productId}/variants/${variantId}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteVariant: (productId: number, variantId: number) => request(`/products/${productId}/variants/${variantId}`, { method: "DELETE" }),
+  getBrands: () => request<string[]>("/products/brands"),
 
   // Coupons (promo codes)
   listCoupons: () => request<Coupon[]>("/coupons"),
@@ -255,7 +256,7 @@ export interface SeoFields {
 }
 export interface Category extends SeoFields { id: number; name: string; slug: string; icon: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }
 export interface SubCategory extends SeoFields { id: number; name: string; slug: string; category_id: number; image_url?: string; is_active: boolean; }
-export interface Product extends SeoFields { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; hsn_code?: string | null; gst_rate?: number | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; is_enquiry_only?: boolean; price_range_max?: number | null; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
+export interface Product extends SeoFields { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; hsn_code?: string | null; gst_rate?: number | null; brand?: string | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; is_enquiry_only?: boolean; price_range_max?: number | null; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
 export interface PageSeo extends SeoFields { id: number; route: string; label?: string | null; created_at?: string | null; updated_at?: string | null; }
 export interface PageSeoCreate extends SeoFields { route: string; label?: string | null; }
 export interface PageSeoUpdate extends SeoFields { label?: string | null; }

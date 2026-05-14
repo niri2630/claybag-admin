@@ -327,7 +327,12 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
+  const [knownBrands, setKnownBrands] = useState<string[]>([]);
+
+  useEffect(() => {
+    api.getBrands().then(setKnownBrands).catch(() => {});
+  }, []);
   const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
@@ -411,11 +416,12 @@ export default function ProductsPage() {
       }
     }
     try {
+      const payload = { ...form, brand: form.brand.trim() || null };
       if (editMode && selected) {
-        const updated = await api.updateProduct(selected.id, form);
+        const updated = await api.updateProduct(selected.id, payload);
         setSelected(updated);
       } else {
-        const created = await api.createProduct(form);
+        const created = await api.createProduct(payload);
         setSelected(created);
         setEditMode(true);
       }
@@ -548,7 +554,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -569,6 +575,7 @@ export default function ProductsPage() {
       size_chart_url: p.size_chart_url || "",
       hsn_code: p.hsn_code || "",
       gst_rate: p.gst_rate ?? null,
+      brand: p.brand ?? "",
       subcategory_id: p.subcategory_id,
       base_price: p.base_price,
       compare_price: p.compare_price ?? null,
@@ -732,7 +739,26 @@ export default function ProductsPage() {
                     {allSubs.map(s => <option key={s.id} value={s.id}>{s.catName} → {s.name}</option>)}
                   </select>
                 </div>
-                
+
+                <div className="col-span-2 md:col-span-1">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">Brand (manufacturer)</label>
+                  <input
+                    type="text"
+                    list="brand-suggestions"
+                    value={form.brand}
+                    onChange={e => setForm(f => ({ ...f, brand: e.target.value }))}
+                    maxLength={120}
+                    placeholder="e.g. Allen Solly, US Polo"
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+                  />
+                  <datalist id="brand-suggestions">
+                    {knownBrands.map((b) => (
+                      <option key={b} value={b} />
+                    ))}
+                  </datalist>
+                  <p className="text-[10px] text-on-surface/40 mt-1">Leave empty if generic / custom-only.</p>
+                </div>
+
                 <div className="col-span-2">
                   <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2 flex items-center justify-between">
                     <span>Description</span>

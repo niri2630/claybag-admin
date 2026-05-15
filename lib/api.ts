@@ -261,7 +261,7 @@ export interface PageSeo extends SeoFields { id: number; route: string; label?: 
 export interface PageSeoCreate extends SeoFields { route: string; label?: string | null; }
 export interface PageSeoUpdate extends SeoFields { label?: string | null; }
 export interface ProductImage { id: number; image_url: string; is_primary: boolean; sort_order: number; variant_id?: number | null; }
-export interface Variant { id: number; variant_type: string; variant_value: string; variant_unit?: string | null; price_adjustment: number; option_price?: number | null; option_mrp?: number | null; stock: number; sku?: string; }
+export interface Variant { id: number; variant_type: string; variant_value: string; variant_unit?: string | null; price_adjustment: number; option_price?: number | null; option_mrp?: number | null; stock: number; sku?: string; color_hex?: string | null; }
 export interface DiscountSlab { id: number; variant_id?: number | null; min_quantity: number; price_per_unit?: number | null; discount_percentage?: number | null; }
 export interface User { id: number; name: string; email: string; phone?: string; is_admin: boolean; is_active: boolean; created_at: string; }
 export interface Order { id: number; order_number?: string; user_id: number; status: string; total_amount: number; shipping_name: string; shipping_phone: string; shipping_address: string; shipping_city: string; shipping_state?: string; shipping_pincode: string; notes?: string; taxable_amount?: number | null; cgst_amount?: number; sgst_amount?: number; igst_amount?: number; coupon_id?: number | null; coupon_discount?: number; coins_applied?: number; referral_discount?: number; created_at: string; items: OrderItem[]; tracking: TrackingEntry[]; }

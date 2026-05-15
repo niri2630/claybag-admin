@@ -341,7 +341,7 @@ export default function ProductsPage() {
   const [uploadColorVariantId, setUploadColorVariantId] = useState<number | null>(null);
 
   // Variant form
-  const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", variant_unit: "", price_adjustment: 0, option_price: null as number | null, option_mrp: null as number | null, stock: 0, sku: "" });
+  const [vForm, setVForm] = useState({ variant_type: "size", variant_value: "", variant_unit: "", price_adjustment: 0, option_price: null as number | null, option_mrp: null as number | null, stock: 0, sku: "", color_hex: "" });
   // Discount form — new model: flat price per unit above min_quantity, optionally per-variant
   const [dForm, setDForm] = useState({ variant_id: null as number | null, min_quantity: 0, price_per_unit: 0 });
   // Inline editing state for discount slabs
@@ -495,7 +495,7 @@ export default function ProductsPage() {
         variant_unit: vForm.variant_unit.trim() || undefined,
       };
       await api.addVariant(selected.id, payload);
-      setVForm({ variant_type: enforcedType, variant_value: "", variant_unit: "", price_adjustment: 0, option_price: null, option_mrp: null, stock: 0, sku: "" });
+      setVForm({ variant_type: enforcedType, variant_value: "", variant_unit: "", price_adjustment: 0, option_price: null, option_mrp: null, stock: 0, sku: "", color_hex: "" });
       const p = await api.getProduct(selected.id);
       setSelected(p);
     }
@@ -1296,6 +1296,15 @@ export default function ProductsPage() {
                       <div className="flex flex-wrap items-center gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
                         <VariantClassPicker value={vForm.variant_type} onChange={(v) => setVForm(f => ({ ...f, variant_type: v }))} />
                         <input placeholder={selected.pricing_mode === "per_area" ? "Value (e.g. 9 or 3×3)" : "Trait (e.g. Cobalt, L)"} value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface flex-1 min-w-[150px] focus:outline-none" />
+                        {vForm.variant_type === "color" && (
+                          <input
+                            type="color"
+                            value={vForm.color_hex || "#000000"}
+                            onChange={(e) => setVForm(f => ({ ...f, color_hex: e.target.value }))}
+                            className="h-8 w-12 rounded border border-outline-variant/50 cursor-pointer"
+                            title="Pick swatch color"
+                          />
+                        )}
                         <input placeholder={selected.pricing_mode === "per_area" ? "sq.in" : "Unit (optional)"} list="variant-unit-suggestions" value={vForm.variant_unit} onChange={e => setVForm(f => ({ ...f, variant_unit: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-28 focus:outline-none" />
                         <datalist id="variant-unit-suggestions">
                           <option value="sq.in" />

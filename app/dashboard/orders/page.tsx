@@ -5,6 +5,20 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"];
 
+const STATUS_ORDER = ["pending", "confirmed", "processing", "shipped", "delivered"] as const;
+type ForwardStatus = typeof STATUS_ORDER[number];
+
+function getButtonState(currentStatus: string, buttonStatus: string): "done" | "current" | "pending" | "disabled" {
+  if (buttonStatus === "cancelled") return currentStatus === "cancelled" ? "current" : "pending";
+  if (currentStatus === "cancelled") return "disabled";
+  const curIdx = STATUS_ORDER.indexOf(currentStatus as ForwardStatus);
+  const btnIdx = STATUS_ORDER.indexOf(buttonStatus as ForwardStatus);
+  if (curIdx < 0 || btnIdx < 0) return "pending";
+  if (btnIdx < curIdx) return "done";
+  if (btnIdx === curIdx) return "current";
+  return "pending";
+}
+
 const STATUS_COLOR: Record<string, string> = {
   pending: "bg-surface-container-highest text-on-surface-variant",
   confirmed: "bg-surface-container-highest text-on-surface-variant",
@@ -21,6 +35,7 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [note, setNote] = useState("");
+  const [pendingStatusChange, setPendingStatusChange] = useState<{ order: Order; newStatus: string } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -291,13 +306,28 @@ export default function OrdersPage() {
                 <h4 className="font-headline font-bold text-xl text-on-surface mb-6 flex items-center gap-2"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-xl">update</span> Progression Matrix</h4>
                 <div className="flex flex-wrap gap-3 mb-6">
                   {STATUSES.map(s => {
-                    const isCurrent = selected.status === s;
+                    const state = getButtonState(selected.status, s);
+                    const isDone = state === "done";
+                    const isCurrent = state === "current";
+                    const isDisabled = state === "disabled";
+                    const isClickable = state === "pending";
                     return (
-                    <button key={s} onClick={() => updateStatus(s)} disabled={isCurrent}
-                      className={`px-5 py-3 rounded-xl text-sm font-label font-bold uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed ${isCurrent ? `ring-2 ring-offset-2 ring-offset-surface-container-lowest ring-secondary-container ${STATUS_COLOR[s]}` : "bg-surface-container hover:bg-surface-container-high text-on-surface"}`}>
-                      {s}
-                    </button>
-                    )
+                      <button
+                        key={s}
+                        onClick={() => isClickable ? setPendingStatusChange({ order: selected, newStatus: s }) : undefined}
+                        disabled={isDone || isCurrent || isDisabled}
+                        className={`px-5 py-3 rounded-xl text-sm font-label font-bold uppercase tracking-wider transition-all
+                          ${isCurrent ? `ring-2 ring-offset-2 ring-offset-surface-container-lowest ring-secondary-container ${STATUS_COLOR[s]}` : ""}
+                          ${isDone ? "bg-surface-container text-on-surface-variant opacity-40 cursor-not-allowed line-through" : ""}
+                          ${isDisabled ? "bg-surface-container text-on-surface-variant opacity-30 cursor-not-allowed" : ""}
+                          ${isClickable ? "bg-surface-container hover:bg-surface-container-high text-on-surface" : ""}
+                          ${isDone || isCurrent || isDisabled ? "disabled:cursor-not-allowed" : ""}
+                        `}
+                      >
+                        {isDone && <span className="mr-1 text-[12px] align-middle">✓</span>}
+                        {s}
+                      </button>
+                    );
                   })}
                 </div>
                 <div className="flex items-center gap-4">
@@ -332,6 +362,43 @@ export default function OrdersPage() {
           )}
         </div>
       </div>
+      {pendingStatusChange && (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          onClick={() => setPendingStatusChange(null)}
+        >
+          <div
+            className="bg-surface rounded-2xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-headline text-xl font-bold text-on-surface mb-2">Confirm Status Change</h3>
+            <p className="text-sm text-on-surface-variant mb-6">
+              Mark order{" "}
+              <span className="font-bold text-on-surface">#{pendingStatusChange.order.order_number}</span> as{" "}
+              <span className="font-bold text-on-surface uppercase">{pendingStatusChange.newStatus}</span>?
+              This action cannot be undone via the timeline (you can only move forward).
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setPendingStatusChange(null)}
+                className="px-4 py-2 rounded-lg border border-outline-variant text-on-surface text-sm font-medium hover:bg-surface-container"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const { newStatus } = pendingStatusChange;
+                  setPendingStatusChange(null);
+                  await updateStatus(newStatus);
+                }}
+                className="px-4 py-2 rounded-lg bg-secondary-container text-on-secondary-container text-sm font-bold hover:opacity-90"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

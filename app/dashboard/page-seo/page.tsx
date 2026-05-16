@@ -278,6 +278,7 @@ export default function PageSeoAdminPage() {
                   value={draft}
                   onChange={(next) => setDraft({ ...draft, ...next })}
                   scopeLabel={`route ${selected.route}`}
+                  hideOgImage
                 />
 
                 <div className="mt-8 flex items-center justify-end gap-3">

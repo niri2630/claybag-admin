@@ -8,6 +8,7 @@ interface Props {
   defaultTitle?: string;
   defaultDescription?: string;
   scopeLabel?: string; // e.g. "this product"
+  hideOgImage?: boolean;
 }
 
 const TITLE_OPTIMAL = [40, 60] as const;
@@ -26,6 +27,7 @@ export default function SeoFieldsEditor({
   defaultTitle,
   defaultDescription,
   scopeLabel = "this page",
+  hideOgImage = false,
 }: Props) {
   const titleLen = (value.seo_title || "").length;
   const descLen = (value.seo_description || "").length;
@@ -91,17 +93,19 @@ export default function SeoFieldsEditor({
       </div>
 
       {/* OG image */}
-      <div>
-        <label className="text-xs uppercase tracking-widest text-gray-600 font-bold block mb-1.5">OG Image URL</label>
-        <input
-          type="url"
-          value={value.og_image || ""}
-          onChange={(e) => update({ og_image: e.target.value || null })}
-          placeholder="https://claybag-media-prod.s3.../share-image.jpg"
-          className="w-full px-3 py-2.5 rounded-xl bg-[#fbf9f8] border border-[#eae8e7] focus:border-[#fdc003] focus:bg-white outline-none text-sm"
-        />
-        <p className="text-[11px] text-gray-400 mt-1">Used for WhatsApp/Twitter/LinkedIn link previews. Recommended size: 1200×630.</p>
-      </div>
+      {!hideOgImage && (
+        <div>
+          <label className="text-xs uppercase tracking-widest text-gray-600 font-bold block mb-1.5">OG Image URL</label>
+          <input
+            type="url"
+            value={value.og_image || ""}
+            onChange={(e) => update({ og_image: e.target.value || null })}
+            placeholder="https://claybag-media-prod.s3.../share-image.jpg"
+            className="w-full px-3 py-2.5 rounded-xl bg-[#fbf9f8] border border-[#eae8e7] focus:border-[#fdc003] focus:bg-white outline-none text-sm"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">Used for WhatsApp/Twitter/LinkedIn link previews. Recommended size: 1200×630.</p>
+        </div>
+      )}
 
       {/* Canonical override */}
       <div>

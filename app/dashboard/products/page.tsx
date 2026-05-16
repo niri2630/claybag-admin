@@ -417,25 +417,15 @@ export default function ProductsPage() {
     }
     try {
       const payload = { ...form, brand: form.brand.trim() || null };
-      let savedId: number | null = null;
       if (editMode && selected) {
         const updated = await api.updateProduct(selected.id, payload);
         setSelected(updated);
-        savedId = updated.id;
       } else {
         const created = await api.createProduct(payload);
         setSelected(created);
         setEditMode(true);
-        savedId = created.id;
       }
-      await load();
-      // Keep the just-edited product in view in the list pane (don't jump to top)
-      if (savedId != null) {
-        requestAnimationFrame(() => {
-          const el = document.querySelector(`[data-product-id="${savedId}"]`);
-          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        });
-      }
+      load();
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
@@ -682,8 +672,7 @@ export default function ProductsPage() {
                       initial={{ opacity: 0, x: -10 }} 
                       animate={{ opacity: 1, x: 0 }} 
                       transition={{ delay: idx * 0.05 }}
-                      key={p.id}
-                      data-product-id={p.id}
+                      key={p.id} 
                       onClick={() => startEdit(p)}
                       className={`relative overflow-hidden rounded-2xl p-4 cursor-pointer transition-all ${
                         isSelected 

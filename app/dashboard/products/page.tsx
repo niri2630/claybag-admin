@@ -433,7 +433,7 @@ export default function ProductsPage() {
       if (savedId != null) {
         requestAnimationFrame(() => {
           const el = document.querySelector(`[data-product-id="${savedId}"]`);
-          el?.scrollIntoView({ behavior: "smooth", block: "start" });
+          el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
         });
       }
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }

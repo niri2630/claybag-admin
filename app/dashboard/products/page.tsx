@@ -144,6 +144,26 @@ const USECASE_SUGGESTIONS: Point[] = [
   { icon: "workspaces", title: "Office Welcome Kits", description: "Set up new office spaces with branded essentials" },
 ];
 
+const DESIGN_UPLOAD_ICONS = [
+  "shopping_cart_checkout", "mail", "design_services", "inventory_2", "draw", "palette",
+  "approval", "edit_note", "task_alt", "photo_library", "send", "schedule",
+  "support_agent", "verified", "local_shipping", "tips_and_updates",
+];
+const DEFAULT_DESIGN_UPLOAD_POINTS = [
+  { icon: "shopping_cart_checkout", title: "Place Your Order", description: "Select the product, quantity, and any required options, then place your order through checkout." },
+  { icon: "mail", title: "Reply With Your Artwork", description: "You'll receive an order confirmation mail with your order number. Simply attach your artwork for customisation in reply to that mail. That's it." },
+  { icon: "design_services", title: "Mockup & Approval", description: "One of our designers will get in touch with you to create your product mockup. We proceed only after you approve." },
+  { icon: "inventory_2", title: "Production & Pre-Ship Photo", description: "Once approved, we begin production. A picture of the finished product is shared with you before shipping." },
+];
+const DESIGN_UPLOAD_SUGGESTIONS: Point[] = [
+  { icon: "shopping_cart_checkout", title: "Place Your Order", description: "Select the product, quantity, and any required options, then place your order through checkout." },
+  { icon: "mail", title: "Reply With Your Artwork", description: "Attach your artwork for customisation in reply to the order confirmation mail." },
+  { icon: "design_services", title: "Mockup & Approval", description: "Our designer creates your product mockup. We proceed only after your approval." },
+  { icon: "inventory_2", title: "Production & Pre-Ship Photo", description: "We share a picture of the finished product before shipping." },
+  { icon: "draw", title: "Artwork Guidelines", description: "Send vector files (AI/EPS/PDF) or 300 DPI raster (PNG/JPG) for best print quality." },
+  { icon: "schedule", title: "Turnaround Time", description: "Branded products dispatch within 7-14 business days after artwork approval." },
+];
+
 type Point = { icon: string; title: string; description: string };
 
 function parsePoints(raw: string): Point[] {
@@ -327,7 +347,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
   const [knownBrands, setKnownBrands] = useState<string[]>([]);
 
   useEffect(() => {
@@ -564,7 +584,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -575,6 +595,7 @@ export default function ProductsPage() {
       use_cases: p.use_cases || "",
       materials: p.materials || "",
       delivery_info: p.delivery_info || "",
+      design_upload_info: p.design_upload_info || "",
       min_order_qty: p.min_order_qty ?? null,
       moq_unit: p.moq_unit || "pcs",
       pricing_mode: (p.pricing_mode === "per_area" ? "per_area" : "per_unit") as "per_unit" | "per_area",
@@ -822,6 +843,18 @@ export default function ProductsPage() {
                     placeholder="No shipping points added. Click a chip above to quick-add, or Add custom for a blank one."
                     defaults={DEFAULT_SHIPPING_POINTS}
                     suggestions={SHIPPING_SUGGESTIONS}
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <PointEditor
+                    label="Design Upload Info (shown on DESIGN UPLOAD tab)"
+                    value={form.design_upload_info}
+                    onChange={(v) => setForm(f => ({ ...f, design_upload_info: v }))}
+                    icons={DESIGN_UPLOAD_ICONS}
+                    placeholder="No design upload points added. Leave empty to show the default 4-step flow, or click a chip to customize."
+                    defaults={DEFAULT_DESIGN_UPLOAD_POINTS}
+                    suggestions={DESIGN_UPLOAD_SUGGESTIONS}
                   />
                 </div>
 

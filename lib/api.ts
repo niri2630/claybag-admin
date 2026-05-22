@@ -121,6 +121,26 @@ export const api = {
   updateOrderStatus: (id: number, status: string, note?: string) =>
     request(`/orders/${id}/status`, { method: "PUT", body: JSON.stringify({ status, note }) }),
   deleteOrder: (id: number) => request(`/orders/${id}`, { method: "DELETE" }),
+
+  // Abandoned checkouts — customers who started a payment but no Order was materialized
+  // (usually because Cashfree webhook never arrived). Used to find and rescue them.
+  getAbandonedCheckouts: () =>
+    request<Array<{
+      pending_checkout_id: number;
+      user_id: number;
+      user_email: string | null;
+      user_name: string | null;
+      user_phone: string | null;
+      cf_order_id: string | null;
+      cf_payment_session_id: string | null;
+      created_at: string | null;
+      expires_at: string | null;
+    }>>("/payments/admin/pending-checkouts"),
+  recoverAbandonedCheckout: (pendingId: number) =>
+    request<{ status: string; order_id?: number; payment_status?: string; total_amount?: number }>(
+      `/payments/admin/recover/${pendingId}`,
+      { method: "POST" },
+    ),
   // Invoice — returns binary PDF blob (not JSON)
   downloadInvoice: async (orderId: number): Promise<Blob> => {
     const token = getToken();

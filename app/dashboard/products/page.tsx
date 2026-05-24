@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { api, Category, Product, Variant } from "@/lib/api";
+import { api, Category, Product, Variant, BusinessCategory } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import SeoFieldsEditor from "@/components/SeoFieldsEditor";
 import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog";
@@ -347,11 +347,14 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
+  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], business_category_ids: [] as number[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
   const [knownBrands, setKnownBrands] = useState<string[]>([]);
+  // Industries available for tagging (admin manages them in /dashboard/industries)
+  const [industries, setIndustries] = useState<BusinessCategory[]>([]);
 
   useEffect(() => {
     api.getBrands().then(setKnownBrands).catch(() => {});
+    api.getBusinessCategories().then(setIndustries).catch(() => {});
   }, []);
   const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
@@ -584,7 +587,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], business_category_ids: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -603,6 +606,7 @@ export default function ProductsPage() {
       option_label: p.option_label || "",
       branding_info: p.branding_info || "",
       branding_methods: p.branding_methods || [],
+      business_category_ids: (p.business_categories || []).map(bc => bc.id),
       size_chart_url: p.size_chart_url || "",
       hsn_code: p.hsn_code || "",
       gst_rate: p.gst_rate ?? null,
@@ -735,6 +739,25 @@ export default function ProductsPage() {
                           {p.is_active ? "Active" : "Hidden"}
                         </span>
                       </div>
+                      {/* Industry tags (Curated for Businesses) — shown so admins can see at a glance what got auto-tagged */}
+                      {p.business_categories && p.business_categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {p.business_categories.slice(0, 3).map((bc) => (
+                            <span
+                              key={bc.id}
+                              className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
+                              title={bc.name}
+                            >
+                              {bc.name.split(",")[0].split("&")[0].trim()}
+                            </span>
+                          ))}
+                          {p.business_categories.length > 3 && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant">
+                              +{p.business_categories.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </motion.div>
                   );
                 })}
@@ -1072,6 +1095,46 @@ export default function ProductsPage() {
                   <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">BRANDING NOTES (optional)</label>
                   <textarea value={form.branding_info} onChange={e => setForm(f => ({ ...f, branding_info: e.target.value }))} rows={2}
                     className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Additional branding notes..." />
+                </div>
+
+                {/* Industries — Curated for Businesses tagging */}
+                <div className="col-span-2">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-1">
+                    INDUSTRIES (Curated for Businesses)
+                  </label>
+                  <p className="text-xs text-on-surface-variant mb-3">
+                    Tag this product with the business verticals it&apos;s built for.
+                    A single product can appear in multiple industries.
+                    {industries.length === 0 && (
+                      <> No industries yet — create them in <code className="font-mono">Industries</code>.</>
+                    )}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {industries.map(bc => {
+                      const isActive = form.business_category_ids.includes(bc.id);
+                      return (
+                        <button
+                          key={bc.id}
+                          type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            business_category_ids: isActive
+                              ? f.business_category_ids.filter(id => id !== bc.id)
+                              : [...f.business_category_ids, bc.id],
+                          }))}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                            isActive
+                              ? "bg-primary text-on-primary border-primary shadow-sm"
+                              : "bg-surface-container border-outline-variant/50 text-on-surface-variant hover:border-primary/50"
+                          } ${!bc.is_active ? "opacity-60" : ""}`}
+                          title={!bc.is_active ? "This industry is currently hidden from customers" : undefined}
+                        >
+                          {bc.name}
+                          {!bc.is_active && <span className="ml-2 text-[9px] opacity-70">(hidden)</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {form.variant_mode_override === "option_dropdown" ? (

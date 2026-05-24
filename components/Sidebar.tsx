@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/dashboard/categories", label: "Categories", icon: "category" },
+  { href: "/dashboard/industries", label: "Industries", icon: "domain" },
   { href: "/dashboard/products", label: "Products", icon: "inventory_2" },
   { href: "/dashboard/orders", label: "Orders", icon: "shopping_cart" },
   { href: "/dashboard/abandoned-checkouts", label: "Abandoned Carts", icon: "warning" },

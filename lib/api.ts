@@ -52,7 +52,19 @@ export const api = {
   createCategory: (data: Partial<Category>) => request<Category>("/categories", { method: "POST", body: JSON.stringify(data) }),
   updateCategory: (id: number, data: Partial<Category>) => request<Category>(`/categories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteCategory: (id: number) => request(`/categories/${id}`, { method: "DELETE" }),
+
+  // Curated for Businesses — industries
+  getBusinessCategories: () => request<BusinessCategory[]>("/business-categories/all"),
+  getBusinessCategory: (id: number) => request<BusinessCategory>(`/business-categories/${id}`),
+  createBusinessCategory: (data: BusinessCategoryCreate) =>
+    request<BusinessCategory>("/business-categories", { method: "POST", body: JSON.stringify(data) }),
+  updateBusinessCategory: (id: number, data: BusinessCategoryUpdate) =>
+    request<BusinessCategory>(`/business-categories/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteBusinessCategory: (id: number) =>
+    request(`/business-categories/${id}`, { method: "DELETE" }),
   uploadCategoryImage: (id: number, file: File) => { const fd = new FormData(); fd.append("file", file); return upload(`/uploads/categories/${id}/image`, fd); },
+  uploadBusinessCategoryHero: (id: number, file: File) => { const fd = new FormData(); fd.append("file", file); return upload<{ image_url: string }>(`/uploads/business-categories/${id}/hero`, fd); },
+  uploadBusinessCategoryCard: (id: number, file: File) => { const fd = new FormData(); fd.append("file", file); return upload<{ image_url: string }>(`/uploads/business-categories/${id}/card`, fd); },
 
   // SubCategories
   createSubCategory: (data: Partial<SubCategory>) => request<SubCategory>("/categories/subcategories", { method: "POST", body: JSON.stringify(data) }),
@@ -62,8 +74,13 @@ export const api = {
   // Products
   getProducts: (subcategoryId?: number) => request<Product[]>(`/products/all${subcategoryId ? `?subcategory_id=${subcategoryId}` : ""}`),
   getProduct: (id: number) => request<Product>(`/products/${id}`),
-  createProduct: (data: Partial<Product>) => request<Product>("/products", { method: "POST", body: JSON.stringify(data) }),
-  updateProduct: (id: number, data: Partial<Product>) => request<Product>(`/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  // `business_category_ids` is write-only — the backend stores it in the M2M
+  // junction table and surfaces the resolved objects in `business_categories`
+  // on the way out.
+  createProduct: (data: Partial<Product> & { business_category_ids?: number[] }) =>
+    request<Product>("/products", { method: "POST", body: JSON.stringify(data) }),
+  updateProduct: (id: number, data: Partial<Product> & { business_category_ids?: number[] }) =>
+    request<Product>(`/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteProduct: (id: number) => request(`/products/${id}`, { method: "DELETE" }),
   uploadProductImage: (productId: number, file: File, isPrimary = false, variantId?: number) => {
     const fd = new FormData(); fd.append("file", file);
@@ -276,7 +293,44 @@ export interface SeoFields {
 }
 export interface Category extends SeoFields { id: number; name: string; slug: string; icon: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }
 export interface SubCategory extends SeoFields { id: number; name: string; slug: string; category_id: number; image_url?: string; is_active: boolean; }
-export interface Product extends SeoFields { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; design_upload_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; hsn_code?: string | null; gst_rate?: number | null; brand?: string | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; is_enquiry_only?: boolean; price_range_max?: number | null; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; }
+
+// Curated for Businesses — industries/business verticals (flat, admin-managed).
+export interface BusinessCategory extends SeoFields {
+  id: number;
+  name: string;
+  slug: string;
+  tagline?: string | null;
+  description?: string | null;
+  hero_image_url?: string | null;
+  card_image_url?: string | null;
+  display_order: number;
+  is_active: boolean;
+  product_count: number;
+  created_at?: string;
+}
+export interface BusinessCategoryCreate extends SeoFields {
+  name: string;
+  slug: string;
+  tagline?: string | null;
+  description?: string | null;
+  hero_image_url?: string | null;
+  card_image_url?: string | null;
+  display_order?: number;
+  is_active?: boolean;
+}
+export interface BusinessCategoryUpdate extends SeoFields {
+  name?: string;
+  slug?: string;
+  tagline?: string | null;
+  description?: string | null;
+  hero_image_url?: string | null;
+  card_image_url?: string | null;
+  display_order?: number;
+  is_active?: boolean;
+}
+// Brief reference used inside Product.business_categories.
+export interface BusinessCategoryRef { id: number; name: string; slug: string; }
+export interface Product extends SeoFields { id: number; name: string; slug?: string; description?: string; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; design_upload_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; hsn_code?: string | null; gst_rate?: number | null; brand?: string | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; is_enquiry_only?: boolean; price_range_max?: number | null; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; business_categories?: BusinessCategoryRef[]; }
 export interface PageSeo extends SeoFields { id: number; route: string; label?: string | null; created_at?: string | null; updated_at?: string | null; }
 export interface PageSeoCreate extends SeoFields { route: string; label?: string | null; }
 export interface PageSeoUpdate extends SeoFields { label?: string | null; }

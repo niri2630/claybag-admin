@@ -119,6 +119,10 @@ export const api = {
   createPageSeo: (data: PageSeoCreate) => request<PageSeo>("/page-seo", { method: "POST", body: JSON.stringify(data) }),
   updatePageSeo: (id: number, data: PageSeoUpdate) => request<PageSeo>(`/page-seo/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deletePageSeo: (id: number) => request<void>(`/page-seo/${id}`, { method: "DELETE" }),
+
+  // Static (footer-linked) editable pages — fixed set of 8 slugs, seeded by migration.
+  listStaticPages: () => request<StaticPage[]>("/static-pages"),
+  updateStaticPage: (id: number, data: StaticPageUpdate) => request<StaticPage>(`/static-pages/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   addDiscountSlab: (productId: number, data: { variant_id?: number | null; min_quantity: number; price_per_unit?: number; discount_percentage?: number }) => request<DiscountSlab>(`/products/${productId}/discounts`, { method: "POST", body: JSON.stringify(data) }),
   updateDiscountSlab: (productId: number, slabId: number, data: { variant_id?: number | null; min_quantity?: number; price_per_unit?: number }) => request<DiscountSlab>(`/products/${productId}/discounts/${slabId}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteDiscountSlab: (productId: number, slabId: number) => request(`/products/${productId}/discounts/${slabId}`, { method: "DELETE" }),
@@ -334,6 +338,24 @@ export interface Product extends SeoFields { id: number; name: string; slug?: st
 export interface PageSeo extends SeoFields { id: number; route: string; label?: string | null; created_at?: string | null; updated_at?: string | null; }
 export interface PageSeoCreate extends SeoFields { route: string; label?: string | null; }
 export interface PageSeoUpdate extends SeoFields { label?: string | null; }
+export interface StaticPage extends SeoFields {
+  id: number;
+  slug: string;
+  title: string;
+  subtitle?: string | null;
+  sidebar_label?: string | null;
+  body_markdown: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string | null;
+}
+export interface StaticPageUpdate extends SeoFields {
+  title?: string;
+  subtitle?: string | null;
+  sidebar_label?: string | null;
+  body_markdown?: string;
+  is_active?: boolean;
+}
 export interface ProductImage { id: number; image_url: string; is_primary: boolean; sort_order: number; variant_id?: number | null; }
 export interface Variant { id: number; variant_type: string; variant_value: string; variant_unit?: string | null; price_adjustment: number; option_price?: number | null; option_mrp?: number | null; stock: number; sku?: string; color_hex?: string | null; }
 export interface DiscountSlab { id: number; variant_id?: number | null; min_quantity: number; price_per_unit?: number | null; discount_percentage?: number | null; }

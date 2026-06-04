@@ -4,6 +4,7 @@ import { api, Category, Product, Variant, BusinessCategory } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 import SeoFieldsEditor from "@/components/SeoFieldsEditor";
 import ConfirmDeleteDialog from "@/components/ConfirmDeleteDialog";
+import RichTextEditor, { stripHtml } from "@/components/RichTextEditor";
 
 const VARIANT_CLASS_OPTIONS = [
   "size", "color", "material", "paper", "finish", "capacity", "width", "pages",
@@ -815,22 +816,30 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2 flex items-center justify-between">
-                    <span>Description</span>
-                    <span className={`font-mono text-[10px] tracking-normal normal-case ${
-                      form.description.trim().length === 0
-                        ? "text-red-600"
-                        : form.description.trim().length < 100
-                          ? "text-amber-600"
-                          : "text-emerald-700"
-                    }`}>
-                      {form.description.trim().length} chars
-                      {form.description.trim().length === 0 && " — required for SEO"}
-                      {form.description.trim().length > 0 && form.description.trim().length < 100 && " — aim for 100+ for better SEO"}
-                    </span>
-                  </label>
-                  <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={4}
-                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Product description for customers... (write 100-300 words for best SEO — describe materials, use cases, customisation options, and target audience)" />
+                  {(() => {
+                    const descLen = stripHtml(form.description).length;
+                    return (
+                      <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2 flex items-center justify-between">
+                        <span>Description</span>
+                        <span className={`font-mono text-[10px] tracking-normal normal-case ${
+                          descLen === 0
+                            ? "text-red-600"
+                            : descLen < 100
+                              ? "text-amber-600"
+                              : "text-emerald-700"
+                        }`}>
+                          {descLen} chars
+                          {descLen === 0 && " — required for SEO"}
+                          {descLen > 0 && descLen < 100 && " — aim for 100+ for better SEO"}
+                        </span>
+                      </label>
+                    );
+                  })()}
+                  <RichTextEditor
+                    value={form.description}
+                    onChange={(html) => setForm(f => ({ ...f, description: html }))}
+                    placeholder="Product description for customers... (write 100-300 words for best SEO — describe materials, use cases, customisation options, and target audience)"
+                  />
                 </div>
 
                 <div className="col-span-2">

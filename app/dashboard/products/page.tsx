@@ -353,6 +353,12 @@ export default function ProductsPage() {
   // Industries available for tagging (admin manages them in /dashboard/industries)
   const [industries, setIndustries] = useState<BusinessCategory[]>([]);
 
+  // Area unit for per_area pricing — derived from moq_unit (sq.in default, sq.ft optional).
+  // `areaUnit` follows the form being edited; `selAreaUnit` follows the saved product
+  // (variant + slab sections operate on `selected`).
+  const areaUnit = form.moq_unit === "sq.ft" ? "sq.ft" : "sq.in";
+  const selAreaUnit = selected?.moq_unit === "sq.ft" ? "sq.ft" : "sq.in";
+
   useEffect(() => {
     api.getBrands().then(setKnownBrands).catch(() => {});
     api.getBusinessCategories().then(setIndustries).catch(() => {});
@@ -895,10 +901,20 @@ export default function ProductsPage() {
                   <div className="flex gap-2">
                     <input type="number" min="1" value={form.min_order_qty ?? ""} onChange={e => setForm(f => ({ ...f, min_order_qty: e.target.value === "" ? null : Number(e.target.value) }))}
                       className="flex-1 min-w-0 bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="e.g. 10" />
-                    <input type="text" value={form.moq_unit} onChange={e => setForm(f => ({ ...f, moq_unit: e.target.value }))}
-                      list="moq-unit-suggestions"
-                      className="w-28 bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
-                      placeholder="pcs" />
+                    {form.pricing_mode === "per_area" ? (
+                      /* Per-area products price by area — unit is a strict choice so pricing,
+                         slabs and variants all follow it. */
+                      <select value={form.moq_unit === "sq.ft" ? "sq.ft" : "sq.in"} onChange={e => setForm(f => ({ ...f, moq_unit: e.target.value }))}
+                        className="w-28 bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all cursor-pointer">
+                        <option value="sq.in">sq.in</option>
+                        <option value="sq.ft">sq.ft</option>
+                      </select>
+                    ) : (
+                      <input type="text" value={form.moq_unit} onChange={e => setForm(f => ({ ...f, moq_unit: e.target.value }))}
+                        list="moq-unit-suggestions"
+                        className="w-28 bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+                        placeholder="pcs" />
+                    )}
                     <datalist id="moq-unit-suggestions">
                       <option value="pcs" />
                       <option value="sq.in" />
@@ -912,7 +928,7 @@ export default function ProductsPage() {
                       <option value="set" />
                     </datalist>
                   </div>
-                  <p className="text-[10px] text-on-surface/40 mt-1">Number + unit (e.g. <strong>10 pcs</strong>, <strong>50 sq.in</strong> for stickers)</p>
+                  <p className="text-[10px] text-on-surface/40 mt-1">Number + unit (e.g. <strong>10 pcs</strong>, <strong>50 {areaUnit}</strong> for stickers)</p>
                 </div>
 
                 <div className="col-span-2 md:col-span-1">
@@ -930,14 +946,14 @@ export default function ProductsPage() {
                       className={`flex-1 px-4 py-3.5 rounded-2xl font-label text-xs uppercase tracking-wider transition-all ${form.pricing_mode === "per_unit" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface/70 hover:bg-surface-container-high"}`}>
                       Per Piece
                     </button>
-                    <button type="button" onClick={() => setForm(f => ({ ...f, pricing_mode: "per_area", moq_unit: f.moq_unit === "pcs" ? "sq.in" : f.moq_unit }))}
+                    <button type="button" onClick={() => setForm(f => ({ ...f, pricing_mode: "per_area", moq_unit: (f.moq_unit === "sq.in" || f.moq_unit === "sq.ft") ? f.moq_unit : "sq.in" }))}
                       className={`flex-1 px-4 py-3.5 rounded-2xl font-label text-xs uppercase tracking-wider transition-all ${form.pricing_mode === "per_area" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface/70 hover:bg-surface-container-high"}`}>
                       Per Area
                     </button>
                   </div>
                   <p className="text-[10px] text-on-surface/40 mt-1">
                     {form.pricing_mode === "per_area"
-                      ? "Customer enters length × breadth × quantity. Slabs match total sq.in. Base price is ₹/sq.in."
+                      ? `Customer enters length × breadth × quantity. Slabs match total ${areaUnit}. Base price is ₹/${areaUnit}. Unit (sq.in / sq.ft) is set in Minimum Order Qty.`
                       : "Standard per-unit pricing. MOQ in pieces."}
                   </p>
                 </div>
@@ -1161,25 +1177,25 @@ export default function ProductsPage() {
                 ) : (
                   <>
                     <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
-                      <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? "Selling Price (₹ / sq.in)" : "Selling Price (₹)"}</label>
+                      <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? `Selling Price (₹ / ${areaUnit})` : "Selling Price (₹)"}</label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
                         <input type="number" step="0.01" value={form.base_price} onChange={e => setForm(f => ({ ...f, base_price: Number(e.target.value) }))}
                           className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" />
                         {form.pricing_mode === "per_area" && (
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ sq.in</span>
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ {areaUnit}</span>
                         )}
                       </div>
                     </div>
                     <div className="col-span-2 md:col-span-1 flex flex-col justify-end">
-                      <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? "MRP (₹ / sq.in)" : "MRP / Compare Price (₹)"} <span className="text-outline font-normal normal-case">optional</span></label>
+                      <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">{form.pricing_mode === "per_area" ? `MRP (₹ / ${areaUnit})` : "MRP / Compare Price (₹)"} <span className="text-outline font-normal normal-case">optional</span></label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 font-headline font-bold text-on-surface-variant">₹</span>
                         <input type="number" step="0.01" value={form.compare_price ?? ""} onChange={e => setForm(f => ({ ...f, compare_price: e.target.value ? Number(e.target.value) : null }))}
                           placeholder="Original price (shown as strikethrough)"
                           className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-10 pr-4 py-3.5 text-on-surface font-headline font-bold text-lg focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all placeholder:font-body placeholder:font-normal placeholder:text-sm" />
                         {form.pricing_mode === "per_area" && (
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ sq.in</span>
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 font-body text-sm text-on-surface-variant pointer-events-none">/ {areaUnit}</span>
                         )}
                       </div>
                       {form.compare_price && form.base_price > 0 && form.compare_price > form.base_price && (
@@ -1386,9 +1402,9 @@ export default function ProductsPage() {
                         <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
                           <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">
                             {form.option_label || "Option"} Name
-                            {selected.pricing_mode === "per_area" && <span className="ml-1 text-on-surface-variant/70 normal-case">(area in sq.in — just the number, e.g. 10)</span>}
+                            {selected.pricing_mode === "per_area" && <span className="ml-1 text-on-surface-variant/70 normal-case">(area in {selAreaUnit} — just the number, e.g. 10)</span>}
                           </label>
-                          <input placeholder={selected.pricing_mode === "per_area" ? "e.g. 10, 25, 50" : "e.g. A4, A3, 4×6 in"} value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value, variant_type: (form.option_label || "Size").trim().toLowerCase(), variant_unit: selected.pricing_mode === "per_area" ? "sq.in" : f.variant_unit }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none" />
+                          <input placeholder={selected.pricing_mode === "per_area" ? "e.g. 10, 25, 50" : "e.g. A4, A3, 4×6 in"} value={vForm.variant_value} onChange={e => setVForm(f => ({ ...f, variant_value: e.target.value, variant_type: (form.option_label || "Size").trim().toLowerCase(), variant_unit: selected.pricing_mode === "per_area" ? selAreaUnit : f.variant_unit }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none" />
                         </div>
                         <div className="flex flex-col gap-1 w-36">
                           <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">Selling Price (₹)</label>
@@ -1406,7 +1422,7 @@ export default function ProductsPage() {
                           <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">SKU</label>
                           <input placeholder="optional" value={vForm.sku} onChange={e => setVForm(f => ({ ...f, sku: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none" />
                         </div>
-                        <button onClick={() => { setVForm(f => ({ ...f, variant_type: (form.option_label || "Size").trim().toLowerCase(), variant_unit: selected.pricing_mode === "per_area" ? "sq.in" : f.variant_unit })); setTimeout(() => addVariant(), 0); }} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-inverse-surface transition-colors h-[42px]">Append Option</button>
+                        <button onClick={() => { setVForm(f => ({ ...f, variant_type: (form.option_label || "Size").trim().toLowerCase(), variant_unit: selected.pricing_mode === "per_area" ? selAreaUnit : f.variant_unit })); setTimeout(() => addVariant(), 0); }} className="bg-primary text-on-primary font-label font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-inverse-surface transition-colors h-[42px]">Append Option</button>
                       </div>
                     ) : (
                       <div className="flex flex-wrap items-center gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
@@ -1421,7 +1437,7 @@ export default function ProductsPage() {
                             title="Pick swatch color"
                           />
                         )}
-                        <input placeholder={selected.pricing_mode === "per_area" ? "sq.in" : "Unit (optional)"} list="variant-unit-suggestions" value={vForm.variant_unit} onChange={e => setVForm(f => ({ ...f, variant_unit: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-28 focus:outline-none" />
+                        <input placeholder={selected.pricing_mode === "per_area" ? selAreaUnit : "Unit (optional)"} list="variant-unit-suggestions" value={vForm.variant_unit} onChange={e => setVForm(f => ({ ...f, variant_unit: e.target.value }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-3 text-sm text-on-surface w-28 focus:outline-none" />
                         <datalist id="variant-unit-suggestions">
                           <option value="sq.in" />
                           <option value="sq.ft" />
@@ -1509,8 +1525,8 @@ export default function ProductsPage() {
 
                 <motion.div key="discounts" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-surface-container-lowest rounded-[2.5rem] shadow-xl shadow-surface-variant/20 border border-outline-variant/30 p-8">
                   <h3 className="font-headline font-bold text-xl text-on-surface flex items-center gap-3 mb-3"><span className="material-symbols-outlined text-secondary-container bg-secondary-container/20 p-2 rounded-2xl">loyalty</span> Bulk Pricing Slabs</h3>
-                  <p className="text-on-surface-variant text-sm font-medium mb-2">{selected.pricing_mode === "per_area" ? "Set a flat per-sq.in rate that kicks in once total order area reaches a threshold." : "Set a flat per-piece price that kicks in once the order quantity reaches a threshold."}</p>
-                  <p className="text-on-surface-variant text-xs font-medium mb-6 italic">{selected.pricing_mode === "per_area" ? "Example: Min Area = 100 (sq.in) and Rate = ₹1.25 means \"orders totalling 100+ sq.in pay ₹1.25 per sq.in\"." : "Example: Min Qty = 25 and Price = ₹340 means \"orders of 25 or more units pay ₹340 per piece\"."}</p>
+                  <p className="text-on-surface-variant text-sm font-medium mb-2">{selected.pricing_mode === "per_area" ? `Set a flat per-${selAreaUnit} rate that kicks in once total order area reaches a threshold.` : "Set a flat per-piece price that kicks in once the order quantity reaches a threshold."}</p>
+                  <p className="text-on-surface-variant text-xs font-medium mb-6 italic">{selected.pricing_mode === "per_area" ? `Example: Min Area = 100 (${selAreaUnit}) and Rate = ₹1.25 means "orders totalling 100+ ${selAreaUnit} pay ₹1.25 per ${selAreaUnit}".` : "Example: Min Qty = 25 and Price = ₹340 means \"orders of 25 or more units pay ₹340 per piece\"."}</p>
 
                   <div className="flex flex-wrap items-end gap-3 mb-8 p-4 bg-surface-container rounded-2xl border border-outline-variant/30">
                     {/* Variant filter — only show if product has variants */}
@@ -1530,11 +1546,11 @@ export default function ProductsPage() {
                       </div>
                     )}
                     <div className="flex-1 min-w-[100px] flex flex-col gap-1">
-                      <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">{selected.pricing_mode === "per_area" ? "Min Area (sq.in)" : "Min Quantity"}</label>
+                      <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">{selected.pricing_mode === "per_area" ? `Min Area (${selAreaUnit})` : "Min Quantity"}</label>
                       <input type="number" min="1" value={dForm.min_quantity || ""} onChange={e => setDForm(f => ({ ...f, min_quantity: Number(e.target.value) }))} placeholder={selected.pricing_mode === "per_area" ? "e.g. 100" : "e.g. 25"} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface font-medium focus:outline-none" />
                     </div>
                     <div className="flex-1 min-w-[100px] flex flex-col gap-1">
-                      <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">{selected.pricing_mode === "per_area" ? "Price Per Sq.In (₹)" : "Price Per Unit (₹)"}</label>
+                      <label className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider pl-2">{selected.pricing_mode === "per_area" ? `Price Per ${selAreaUnit === "sq.ft" ? "Sq.Ft" : "Sq.In"} (₹)` : "Price Per Unit (₹)"}</label>
                       <input type="number" min="0" step="0.01" value={dForm.price_per_unit || ""} onChange={e => setDForm(f => ({ ...f, price_per_unit: Number(e.target.value) }))} placeholder={selected.pricing_mode === "per_area" ? "e.g. 1.25" : "e.g. 340"} className="bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface font-medium focus:outline-none" />
                     </div>
                     <div>
@@ -1548,7 +1564,7 @@ export default function ProductsPage() {
                         <tr>
                           <th className="px-6 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">Applies To</th>
                           <th className="px-6 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">{selected.pricing_mode === "per_area" ? "Min Area" : "Threshold"}</th>
-                          <th className="px-6 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">{selected.pricing_mode === "per_area" ? "Rate / Sq.In" : "Price Per Unit"}</th>
+                          <th className="px-6 py-3 font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">{selected.pricing_mode === "per_area" ? `Rate / ${selAreaUnit === "sq.ft" ? "Sq.Ft" : "Sq.In"}` : "Price Per Unit"}</th>
                           <th className="px-6 py-3"></th>
                         </tr>
                       </thead>
@@ -1586,7 +1602,7 @@ export default function ProductsPage() {
                               {isEditing ? (
                                 <input type="number" min="1" value={editData.min_quantity || ""} onChange={e => setEditingSlabs(prev => ({ ...prev, [s.id]: { ...prev[s.id], min_quantity: Number(e.target.value) } }))} className="bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-3 py-1.5 text-sm font-bold w-24 focus:outline-none" />
                               ) : (
-                                <span className="font-headline font-bold text-on-surface">{s.min_quantity}+ {selected.pricing_mode === "per_area" ? "sq.in" : "units"}</span>
+                                <span className="font-headline font-bold text-on-surface">{s.min_quantity}+ {selected.pricing_mode === "per_area" ? selAreaUnit : "units"}</span>
                               )}
                             </td>
                             <td className="px-6 py-4">
@@ -1595,7 +1611,7 @@ export default function ProductsPage() {
                               ) : (
                                 <span className="font-headline font-bold text-primary">
                                   {s.price_per_unit != null
-                                    ? `₹${s.price_per_unit.toLocaleString("en-IN")} / ${selected.pricing_mode === "per_area" ? "sq.in" : "pc"}`
+                                    ? `₹${s.price_per_unit.toLocaleString("en-IN")} / ${selected.pricing_mode === "per_area" ? selAreaUnit : "pc"}`
                                     : s.discount_percentage != null
                                       ? `${s.discount_percentage}% off (legacy)`
                                       : "—"}

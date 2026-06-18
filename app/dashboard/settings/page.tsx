@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -32,13 +34,16 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await api.changePassword(currentPassword, newPassword);
-      setSuccess("Password changed successfully.");
+      setSuccess("Password changed. Logging you out…");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      // The old token is now invalid server-side — clear it and re-login.
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("admin_user");
+      setTimeout(() => router.replace("/login"), 1200);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to change password.");
-    } finally {
       setSaving(false);
     }
   }

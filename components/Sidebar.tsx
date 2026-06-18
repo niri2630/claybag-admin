@@ -16,6 +16,7 @@ const nav = [
   { href: "/dashboard/coupons", label: "Promo Codes", icon: "local_offer" },
   { href: "/dashboard/page-seo", label: "Page SEO", icon: "travel_explore" },
   { href: "/dashboard/static-pages", label: "Page Content", icon: "article" },
+  { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ];
 
 export default function Sidebar() {

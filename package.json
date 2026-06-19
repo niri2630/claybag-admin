@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@tiptap/extension-image": "^3.25.0",
+    "@tiptap/extension-link": "^3.25.0",
+    "@tiptap/extension-underline": "^3.25.0",
     "@tiptap/pm": "^3.25.0",
     "@tiptap/react": "^3.25.0",
     "@tiptap/starter-kit": "^3.25.0",

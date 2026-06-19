@@ -241,6 +241,21 @@ export const api = {
     return downloadCsv(`/reports/gst.csv${params.toString() ? `?${params.toString()}` : ""}`);
   },
   downloadProductsCsv: async () => downloadCsv("/reports/products.csv"),
+
+  // Blog — admin CRUD + inline-image upload (sanitized server-side).
+  listBlogPostsAdmin: () => request<BlogPostListItem[]>("/blog/admin/posts"),
+  getBlogPostAdmin: (id: number) => request<BlogPost>(`/blog/admin/posts/${id}`),
+  createBlogPost: (data: BlogPostCreate) =>
+    request<BlogPost>("/blog/admin/posts", { method: "POST", body: JSON.stringify(data) }),
+  updateBlogPost: (id: number, data: BlogPostUpdate) =>
+    request<BlogPost>(`/blog/admin/posts/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteBlogPost: (id: number) =>
+    request<{ detail: string }>(`/blog/admin/posts/${id}`, { method: "DELETE" }),
+  uploadBlogImage: (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return upload<{ url: string }>("/blog/admin/upload-image", fd);
+  },
 };
 
 // Helper: fetch a CSV endpoint with auth, trigger a browser download
@@ -393,6 +408,48 @@ export interface Coupon {
   status: "active" | "scheduled" | "expired" | "used" | "exhausted" | "disabled";
   assigned_user_ids: number[];
   assigned_users: CouponAssignee[];
+}
+export interface BlogPostListItem {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  cover_image_url?: string | null;
+  cover_image_alt?: string | null;
+  author?: string | null;
+  status: "draft" | "published";
+  published_at?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+}
+export interface BlogPost extends BlogPostListItem {
+  body_html: string;
+}
+export interface BlogPostCreate {
+  slug: string;
+  title: string;
+  excerpt?: string | null;
+  cover_image_url?: string | null;
+  cover_image_alt?: string | null;
+  body_html: string;
+  author?: string | null;
+  status?: "draft" | "published";
+  seo_title?: string | null;
+  seo_description?: string | null;
+}
+export interface BlogPostUpdate {
+  slug?: string;
+  title?: string;
+  excerpt?: string | null;
+  cover_image_url?: string | null;
+  cover_image_alt?: string | null;
+  body_html?: string;
+  author?: string | null;
+  status?: "draft" | "published";
+  seo_title?: string | null;
+  seo_description?: string | null;
 }
 export interface CouponCreate {
   code: string;

@@ -424,8 +424,13 @@ export interface BlogPostListItem {
   created_at: string;
   updated_at?: string | null;
 }
+export interface BlogFaqItem {
+  question: string;
+  answer: string;
+}
 export interface BlogPost extends BlogPostListItem {
   body_html: string;
+  faqs: BlogFaqItem[];
 }
 export interface BlogPostCreate {
   slug: string;
@@ -438,6 +443,7 @@ export interface BlogPostCreate {
   status?: "draft" | "published";
   seo_title?: string | null;
   seo_description?: string | null;
+  faqs?: BlogFaqItem[];
 }
 export interface BlogPostUpdate {
   slug?: string;
@@ -450,6 +456,7 @@ export interface BlogPostUpdate {
   status?: "draft" | "published";
   seo_title?: string | null;
   seo_description?: string | null;
+  faqs?: BlogFaqItem[];
 }
 export interface CouponCreate {
   code: string;

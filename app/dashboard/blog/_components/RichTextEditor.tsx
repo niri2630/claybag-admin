@@ -19,6 +19,11 @@ import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
+// Tiptap 3.x exports these as named exports — `default` was dropped.
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
 import { api } from "@/lib/api";
 
 type Props = {
@@ -100,12 +105,43 @@ export default function RichTextEditor({ value, onChange }: Props) {
       Underline,
       Image.configure({ inline: false, allowBase64: false }),
       Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
+      Table.configure({ resizable: true, HTMLAttributes: { class: "tiptap-table" } }),
+      TableRow,
+      TableHeader,
+      TableCell,
     ],
     content: value || "<p></p>",
     editorProps: {
       attributes: {
         class:
           "prose-tiptap min-h-[420px] px-5 py-4 outline-none text-on-surface text-[15px] leading-relaxed",
+      },
+      // Intercept pasted image files (e.g. copy from Figma / Excel screenshot)
+      // and upload them rather than dropping a base64 blob that bleach strips.
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (const item of Array.from(items)) {
+          if (item.kind === "file" && item.type.startsWith("image/")) {
+            const file = item.getAsFile();
+            if (!file) continue;
+            event.preventDefault();
+            (async () => {
+              try {
+                const { url } = await api.uploadBlogImage(file);
+                view.dispatch(
+                  view.state.tr.replaceSelectionWith(
+                    view.state.schema.nodes.image.create({ src: url, alt: file.name }),
+                  ),
+                );
+              } catch (err) {
+                alert(err instanceof Error ? err.message : "Paste upload failed");
+              }
+            })();
+            return true;
+          }
+        }
+        return false;
       },
     },
     onUpdate: ({ editor }) => {
@@ -227,6 +263,44 @@ export default function RichTextEditor({ value, onChange }: Props) {
         }
         .prose-tiptap code { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.875rem; }
         .prose-tiptap hr { border: 0; border-top: 1px solid rgba(0,0,0,0.1); margin: 1.5rem 0; }
+        .prose-tiptap table {
+          border-collapse: collapse;
+          margin: 1rem 0;
+          table-layout: fixed;
+          width: 100%;
+          overflow: hidden;
+        }
+        .prose-tiptap table td,
+        .prose-tiptap table th {
+          border: 1px solid rgba(0,0,0,0.15);
+          padding: 0.5rem 0.75rem;
+          vertical-align: top;
+          min-width: 1em;
+          position: relative;
+        }
+        .prose-tiptap table th {
+          background: #fdc003;
+          font-weight: 700;
+          text-align: left;
+        }
+        .prose-tiptap table .selectedCell:after {
+          background: rgba(253,192,3,0.25);
+          content: "";
+          left: 0; right: 0; top: 0; bottom: 0;
+          pointer-events: none;
+          position: absolute;
+          z-index: 2;
+        }
+        .prose-tiptap table .column-resize-handle {
+          background: #fdc003;
+          bottom: -2px;
+          pointer-events: none;
+          position: absolute;
+          right: -2px;
+          top: 0;
+          width: 4px;
+        }
+        .prose-tiptap .tableWrapper { overflow-x: auto; }
       `}</style>
     </div>
   );
@@ -330,6 +404,46 @@ function Toolbar({
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
         icon="horizontal_rule"
         label="Divider"
+      />
+
+      <Divider />
+
+      <ToolbarButton
+        onClick={() =>
+          editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+        }
+        icon="grid_on"
+        label="Insert table"
+      />
+      <ToolbarButton
+        disabled={!editor.can().addRowAfter()}
+        onClick={() => editor.chain().focus().addRowAfter().run()}
+        icon="add_row_below"
+        label="Add row below"
+      />
+      <ToolbarButton
+        disabled={!editor.can().addColumnAfter()}
+        onClick={() => editor.chain().focus().addColumnAfter().run()}
+        icon="add_column_right"
+        label="Add column right"
+      />
+      <ToolbarButton
+        disabled={!editor.can().deleteRow()}
+        onClick={() => editor.chain().focus().deleteRow().run()}
+        icon="delete_sweep"
+        label="Delete row"
+      />
+      <ToolbarButton
+        disabled={!editor.can().deleteColumn()}
+        onClick={() => editor.chain().focus().deleteColumn().run()}
+        icon="splitscreen_vertical_add"
+        label="Delete column"
+      />
+      <ToolbarButton
+        disabled={!editor.can().deleteTable()}
+        onClick={() => editor.chain().focus().deleteTable().run()}
+        icon="grid_off"
+        label="Delete table"
       />
 
       <Divider />

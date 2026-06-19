@@ -16,7 +16,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, BlogPost, BlogPostCreate } from "@/lib/api";
+import { api, BlogPost, BlogPostCreate, BlogFaqItem } from "@/lib/api";
 import RichTextEditor from "./RichTextEditor";
 
 const SITE_URL = "https://claybag.com";
@@ -51,6 +51,7 @@ type Draft = {
   status: "draft" | "published";
   seo_title: string;
   seo_description: string;
+  faqs: BlogFaqItem[];
 };
 
 function emptyDraft(): Draft {
@@ -65,6 +66,7 @@ function emptyDraft(): Draft {
     status: "draft",
     seo_title: "",
     seo_description: "",
+    faqs: [],
   };
 }
 
@@ -80,6 +82,7 @@ function fromPost(p: BlogPost): Draft {
     status: p.status,
     seo_title: p.seo_title || "",
     seo_description: p.seo_description || "",
+    faqs: Array.isArray(p.faqs) ? p.faqs : [],
   };
 }
 
@@ -95,6 +98,10 @@ function toPayload(d: Draft): BlogPostCreate {
     status: d.status,
     seo_title: d.seo_title.trim() || null,
     seo_description: d.seo_description.trim() || null,
+    // Strip empty rows so authors can save partial drafts without validation errors.
+    faqs: d.faqs
+      .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }))
+      .filter((f) => f.question && f.answer),
   };
 }
 
@@ -184,7 +191,14 @@ export default function BlogPostForm({ existing }: { existing?: BlogPost }) {
     };
   }, [draft.seo_title, draft.title, draft.seo_description, draft.excerpt, draft.slug]);
 
-  const previewHref = isEdit && existing ? `/blog/${existing.slug}` : null;
+  // Drafts can't be reached on the public site (the /blog/{slug} endpoint
+  // filters status='published'), so for unpublished posts point Preview at the
+  // admin-side preview route which uses the admin API.
+  const previewHref = isEdit && existing
+    ? existing.status === "published"
+      ? `/blog/${existing.slug}`
+      : `/dashboard/blog/${existing.id}/preview`
+    : null;
 
   return (
     <div className="min-h-screen bg-surface">
@@ -305,6 +319,117 @@ export default function BlogPostForm({ existing }: { existing?: BlogPost }) {
                 value={draft.body_html}
                 onChange={(html) => update("body_html", html)}
               />
+            </section>
+
+            <section className="bg-surface-container rounded-2xl p-5 space-y-4">
+              <div className="flex items-baseline justify-between gap-3 flex-wrap">
+                <div>
+                  <h3 className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">
+                    FAQ block
+                  </h3>
+                  <p className="text-xs text-on-surface-variant mt-1">
+                    Shown after the body and emitted as FAQPage schema for Google rich results. Plain text only.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    update("faqs", [...draft.faqs, { question: "", answer: "" }])
+                  }
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-secondary-container text-on-secondary-container text-xs font-bold hover:opacity-90"
+                >
+                  <span className="material-symbols-outlined text-[16px]">add</span>
+                  Add FAQ
+                </button>
+              </div>
+
+              {draft.faqs.length === 0 ? (
+                <p className="text-on-surface-variant text-xs italic">
+                  No FAQs yet. Click "Add FAQ" to start — answer common buyer questions and Google may show them as a rich result.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {draft.faqs.map((faq, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-xl border border-outline-variant bg-surface p-4 space-y-3"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">
+                          FAQ #{idx + 1}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            title="Move up"
+                            disabled={idx === 0}
+                            onClick={() => {
+                              const next = [...draft.faqs];
+                              [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                              update("faqs", next);
+                            }}
+                            className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container-highest disabled:opacity-30"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">arrow_upward</span>
+                          </button>
+                          <button
+                            type="button"
+                            title="Move down"
+                            disabled={idx === draft.faqs.length - 1}
+                            onClick={() => {
+                              const next = [...draft.faqs];
+                              [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+                              update("faqs", next);
+                            }}
+                            className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container-highest disabled:opacity-30"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">arrow_downward</span>
+                          </button>
+                          <button
+                            type="button"
+                            title="Delete"
+                            onClick={() =>
+                              update(
+                                "faqs",
+                                draft.faqs.filter((_, i) => i !== idx),
+                              )
+                            }
+                            className="p-1.5 rounded-md text-error hover:bg-error-container"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                          </button>
+                        </div>
+                      </div>
+                      <Field label="Question" hint={`${faq.question.length}/300`}>
+                        <input
+                          className={inputClass}
+                          value={faq.question}
+                          maxLength={300}
+                          onChange={(e) => {
+                            const next = [...draft.faqs];
+                            next[idx] = { ...next[idx], question: e.target.value };
+                            update("faqs", next);
+                          }}
+                          placeholder="What's the minimum order quantity?"
+                        />
+                      </Field>
+                      <Field label="Answer" hint={`${faq.answer.length}/2000`}>
+                        <textarea
+                          className={`${inputClass} min-h-[90px]`}
+                          value={faq.answer}
+                          maxLength={2000}
+                          onChange={(e) => {
+                            const next = [...draft.faqs];
+                            next[idx] = { ...next[idx], answer: e.target.value };
+                            update("faqs", next);
+                          }}
+                          placeholder="Our standard MOQ is 50 units, but for first-time pilots we can go as low as 25."
+                        />
+                      </Field>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
 

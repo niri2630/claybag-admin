@@ -8,7 +8,7 @@ import { api, AdminUser } from "@/lib/api";
 // redirects them to /dashboard/orders. Keep this in sync with the Sidebar nav
 // filter — if a new orders-related route is added (e.g. /dashboard/orders/<id>)
 // the startsWith check below already covers nested paths.
-const ORDERS_STAFF_ALLOWED_PREFIXES = ["/dashboard/orders"];
+const ORDERS_STAFF_ALLOWED_PREFIXES = ["/dashboard/orders", "/dashboard/settings"];
 
 function isOrdersStaffPath(pathname: string): boolean {
   return ORDERS_STAFF_ALLOWED_PREFIXES.some(

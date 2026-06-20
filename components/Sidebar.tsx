@@ -27,6 +27,7 @@ const FULL_NAV: NavItem[] = [
 // more here also requires updating ORDERS_STAFF_ALLOWED_PREFIXES in the layout.
 const ORDERS_STAFF_NAV: NavItem[] = [
   { href: "/dashboard/orders", label: "Orders", icon: "shopping_cart" },
+  { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ];
 
 function navFor(user: AdminUser): NavItem[] {

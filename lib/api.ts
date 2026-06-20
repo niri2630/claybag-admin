@@ -149,6 +149,11 @@ export const api = {
   getUsers: () => request<User[]>("/users"),
 
   deleteUser: (id: number) => request(`/users/${id}`, { method: "DELETE" }),
+  adminResetUserPassword: (id: number, new_password: string) =>
+    request<{ detail: string }>(`/users/${id}/reset-password`, {
+      method: "POST",
+      body: JSON.stringify({ new_password }),
+    }),
 
   // Company Profiles
   getCompanyProfiles: () => request<CompanyProfile[]>("/company-profile/all"),

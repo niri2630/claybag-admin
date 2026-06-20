@@ -18,7 +18,11 @@ export default function LoginPage() {
     try {
       const res = await api.adminLogin(email, password);
       localStorage.setItem("admin_token", res.access_token);
-      router.push("/dashboard");
+      localStorage.setItem("admin_user", JSON.stringify(res.user));
+      // Scoped staff (e.g. orders_admin) land directly on Orders since the rest
+      // of the dashboard is hidden from them anyway.
+      const landing = res.user.role === "orders_admin" ? "/dashboard/orders" : "/dashboard";
+      router.push(landing);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

@@ -1,12 +1,26 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import { api, AdminUser } from "@/lib/api";
+
+// Routes that scoped Orders-only staff are allowed to visit. Anything else
+// redirects them to /dashboard/orders. Keep this in sync with the Sidebar nav
+// filter — if a new orders-related route is added (e.g. /dashboard/orders/<id>)
+// the startsWith check below already covers nested paths.
+const ORDERS_STAFF_ALLOWED_PREFIXES = ["/dashboard/orders"];
+
+function isOrdersStaffPath(pathname: string): boolean {
+  return ORDERS_STAFF_ALLOWED_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + "/")
+  );
+}
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  const [user, setUser] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -15,27 +29,30 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace("/login");
       return;
     }
-    // Validate the token by making a lightweight authenticated request
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/categories/all`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          // Token is invalid/expired — clear and redirect to login
-          localStorage.removeItem("admin_token");
-          localStorage.removeItem("admin_user");
-          router.replace("/login");
-        } else {
-          setAuthChecked(true);
-        }
+    api
+      .me()
+      .then((u) => {
+        localStorage.setItem("admin_user", JSON.stringify(u));
+        setUser(u);
       })
       .catch(() => {
-        // Backend unreachable — still show the dashboard but warn
-        setAuthChecked(true);
+        // Token invalid/expired or backend unreachable — bounce to login.
+        localStorage.removeItem("admin_token");
+        localStorage.removeItem("admin_user");
+        router.replace("/login");
       });
   }, [router]);
 
-  if (!mounted || !authChecked) {
+  // Scoped staff (orders_admin) can only see /dashboard/orders*. If they hit
+  // any other route directly (typed URL, stale tab) bounce them back.
+  useEffect(() => {
+    if (!user) return;
+    if (user.role === "orders_admin" && !isOrdersStaffPath(pathname)) {
+      router.replace("/dashboard/orders");
+    }
+  }, [user, pathname, router]);
+
+  if (!mounted || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -48,7 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
+      <Sidebar user={user} />
       <main className="ml-64 flex-1 overflow-y-auto bg-surface px-12 py-10 relative">
         {/* Subtle background blob */}
         <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-surface-container-high/30 rounded-full blur-[100px] pointer-events-none" />

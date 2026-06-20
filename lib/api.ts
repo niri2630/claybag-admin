@@ -36,13 +36,25 @@ async function upload<T = unknown>(path: string, formData: FormData): Promise<T>
   return res.json() as Promise<T>;
 }
 
+// Authenticated admin-panel user. `role` is null for legacy full admins
+// (is_admin=true with no role set) and "orders_admin" for scoped staff who
+// only see the Orders section.
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  is_admin: boolean;
+  role: string | null;
+}
+
 export const api = {
   // Auth
   adminLogin: (email: string, password: string) =>
-    request<{ access_token: string; user: { name: string; email: string } }>("/auth/admin-login", {
+    request<{ access_token: string; user: AdminUser }>("/auth/admin-login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
+  me: () => request<AdminUser>("/auth/me"),
   changePassword: (current_password: string, new_password: string) =>
     request<{ message: string }>("/auth/change-password", {
       method: "POST",

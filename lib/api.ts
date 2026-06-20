@@ -154,6 +154,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ new_password }),
     }),
+  adminCreateUser: (data: { name: string; email: string; password: string; role: "admin" | "orders_admin" }) =>
+    request<User>("/users/admin-create", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
   // Company Profiles
   getCompanyProfiles: () => request<CompanyProfile[]>("/company-profile/all"),

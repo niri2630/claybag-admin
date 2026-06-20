@@ -42,6 +42,7 @@ export default function SettingsPage() {
 
       <div className="mt-8 flex flex-col gap-8 max-w-2xl">
         <ChangeMyPasswordCard onLoggedOut={() => router.replace("/login")} />
+        {isFullAdmin && <CreateAdminLoginCard />}
         {isFullAdmin && <ResetOtherUserPasswordCard />}
       </div>
     </div>
@@ -147,6 +148,137 @@ function ChangeMyPasswordCard({ onLoggedOut }: { onLoggedOut: () => void }) {
         className="bg-primary text-on-primary font-label font-bold px-6 py-2.5 rounded-xl text-sm transition-colors hover:bg-inverse-surface disabled:opacity-50"
       >
         {saving ? "Saving..." : "Update Password"}
+      </button>
+    </form>
+  );
+}
+
+function CreateAdminLoginCard() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "orders_admin">("orders_admin");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!name.trim()) {
+      setError("Name is required.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Password and confirmation do not match.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const user = await api.adminCreateUser({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        role,
+      });
+      const roleLabel = role === "admin" ? "full admin" : "orders-only staff";
+      setSuccess(`Created ${user.email} as ${roleLabel}. Share the password with them out-of-band.`);
+      setName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create user.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="bg-surface-container-low border border-outline-variant/40 rounded-2xl p-6"
+    >
+      <h2 className="font-label font-bold text-sm uppercase tracking-widest text-on-surface mb-1">
+        Create Admin Login
+      </h2>
+      <p className="text-on-surface-variant text-xs mb-5">
+        Add a new account that can sign into the admin panel. Pick the access
+        level: full admin sees everything, orders-only staff can only access the
+        Orders section.
+      </p>
+
+      <Field label="Name">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={inputClass}
+          required
+        />
+      </Field>
+      <Field label="Email">
+        <input
+          type="email"
+          autoComplete="off"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className={inputClass}
+          required
+        />
+      </Field>
+      <Field label="Access level">
+        <select
+          value={role}
+          onChange={(e) => setRole(e.target.value as "admin" | "orders_admin")}
+          className={inputClass}
+        >
+          <option value="orders_admin">Orders only (scoped staff)</option>
+          <option value="admin">Full admin (all sections)</option>
+        </select>
+      </Field>
+      <Field label="Password (min 8 chars)">
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className={inputClass}
+          required
+        />
+      </Field>
+      <Field label="Confirm password">
+        <input
+          type="password"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className={inputClass}
+          required
+        />
+      </Field>
+
+      {error && <p className="text-error text-sm mb-4">{error}</p>}
+      {success && (
+        <p className="text-sm mb-4" style={{ color: "#1b8a4b" }}>
+          {success}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        disabled={saving}
+        className="bg-primary text-on-primary font-label font-bold px-6 py-2.5 rounded-xl text-sm transition-colors hover:bg-inverse-surface disabled:opacity-50"
+      >
+        {saving ? "Creating..." : "Create Login"}
       </button>
     </form>
   );

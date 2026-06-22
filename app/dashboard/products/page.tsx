@@ -348,7 +348,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], business_category_ids: [] as number[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
+  const [form, setForm] = useState({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], branding_available: true, business_category_ids: [] as number[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
   const [knownBrands, setKnownBrands] = useState<string[]>([]);
   // Industries available for tagging (admin manages them in /dashboard/industries)
   const [industries, setIndustries] = useState<BusinessCategory[]>([]);
@@ -594,13 +594,14 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], business_category_ids: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], branding_available: true, business_category_ids: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
     setForm({
       name: p.name,
       description: p.description || "",
+      short_description: p.short_description || "",
       specifications: p.specifications || "",
       use_cases: p.use_cases || "",
       materials: p.materials || "",
@@ -613,6 +614,7 @@ export default function ProductsPage() {
       option_label: p.option_label || "",
       branding_info: p.branding_info || "",
       branding_methods: p.branding_methods || [],
+      branding_available: p.branding_available !== false,
       business_category_ids: (p.business_categories || []).map(bc => bc.id),
       size_chart_url: p.size_chart_url || "",
       hsn_code: p.hsn_code || "",
@@ -847,6 +849,23 @@ export default function ProductsPage() {
                     value={form.description}
                     onChange={(html) => setForm(f => ({ ...f, description: html }))}
                     placeholder="Product description for customers... (write 100-300 words for best SEO — describe materials, use cases, customisation options, and target audience)"
+                  />
+                </div>
+
+                <div className="col-span-2">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2 flex items-center justify-between">
+                    <span>Short Description</span>
+                    <span className={`font-mono text-[10px] tracking-normal normal-case ${form.short_description.length > 250 ? "text-red-600" : "text-on-surface/40"}`}>
+                      {form.short_description.length}/250
+                    </span>
+                  </label>
+                  <textarea
+                    value={form.short_description}
+                    onChange={e => setForm(f => ({ ...f, short_description: e.target.value.slice(0, 250) }))}
+                    maxLength={250}
+                    rows={2}
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+                    placeholder="Brief one-liner shown between the product name and price on the storefront (max 250 chars)."
                   />
                 </div>
 
@@ -1107,21 +1126,33 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="col-span-2">
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">BRANDING METHODS</label>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {ALL_BRANDING_METHODS.map(method => {
-                      const isActive = form.branding_methods.includes(method);
-                      return (
-                        <button key={method} type="button"
-                          onClick={() => setForm(f => ({ ...f, branding_methods: isActive ? f.branding_methods.filter(m => m !== method) : [...f.branding_methods, method] }))}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isActive ? "bg-primary text-on-primary border-primary shadow-sm" : "bg-surface-container border-outline-variant/50 text-on-surface-variant hover:border-primary/50"}`}
-                        >{method}</button>
-                      );
-                    })}
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant">BRANDING METHODS</label>
+                    <button type="button"
+                      onClick={() => setForm(f => ({ ...f, branding_available: !f.branding_available }))}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${!form.branding_available ? "bg-error-container text-on-error-container border-error/40" : "bg-surface-container border-outline-variant/50 text-on-surface-variant hover:border-primary/50"}`}
+                    >{!form.branding_available ? "NA — Branding tab hidden" : "Mark as NA (no branding)"}</button>
                   </div>
-                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">BRANDING NOTES (optional)</label>
-                  <textarea value={form.branding_info} onChange={e => setForm(f => ({ ...f, branding_info: e.target.value }))} rows={2}
-                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Additional branding notes..." />
+                  {form.branding_available ? (
+                    <>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {ALL_BRANDING_METHODS.map(method => {
+                          const isActive = form.branding_methods.includes(method);
+                          return (
+                            <button key={method} type="button"
+                              onClick={() => setForm(f => ({ ...f, branding_methods: isActive ? f.branding_methods.filter(m => m !== method) : [...f.branding_methods, method] }))}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${isActive ? "bg-primary text-on-primary border-primary shadow-sm" : "bg-surface-container border-outline-variant/50 text-on-surface-variant hover:border-primary/50"}`}
+                            >{method}</button>
+                          );
+                        })}
+                      </div>
+                      <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">BRANDING NOTES (optional)</label>
+                      <textarea value={form.branding_info} onChange={e => setForm(f => ({ ...f, branding_info: e.target.value }))} rows={2}
+                        className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all" placeholder="Additional branding notes..." />
+                    </>
+                  ) : (
+                    <p className="text-xs text-on-surface-variant">Branding marked as <strong>NA</strong> — the Branding tab will not appear on the product page.</p>
+                  )}
                 </div>
 
                 {/* Industries — Curated for Businesses tagging */}

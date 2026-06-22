@@ -27,6 +27,8 @@ export default function AbandonedCheckoutsPage() {
   const [error, setError] = useState("");
   const [recovering, setRecovering] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [reminding, setReminding] = useState<number | null>(null);
+  const [remindConfirm, setRemindConfirm] = useState<PendingRow | null>(null);
   const [toast, setToast] = useState<{ kind: "success" | "info" | "error"; msg: string } | null>(null);
 
   async function load() {
@@ -74,6 +76,20 @@ export default function AbandonedCheckoutsPage() {
       setToast({ kind: "error", msg: e instanceof Error ? e.message : "Recovery failed" });
     } finally {
       setRecovering(null);
+      setTimeout(() => setToast(null), 6000);
+    }
+  }
+
+  async function remind(id: number) {
+    setReminding(id);
+    setRemindConfirm(null);
+    try {
+      const result = await api.sendCartReminder(id);
+      setToast({ kind: "success", msg: `Reminder email sent to ${result.to}.` });
+    } catch (e) {
+      setToast({ kind: "error", msg: e instanceof Error ? e.message : "Failed to send reminder" });
+    } finally {
+      setReminding(null);
       setTimeout(() => setToast(null), 6000);
     }
   }
@@ -126,6 +142,7 @@ export default function AbandonedCheckoutsPage() {
               <tr>
                 <th className="px-5 py-3 text-left font-label font-bold">#</th>
                 <th className="px-5 py-3 text-left font-label font-bold">Customer</th>
+                <th className="px-5 py-3 text-left font-label font-bold">Cart</th>
                 <th className="px-5 py-3 text-left font-label font-bold">Cashfree Order</th>
                 <th className="px-5 py-3 text-left font-label font-bold">Age</th>
                 <th className="px-5 py-3 text-right font-label font-bold">Action</th>
@@ -142,18 +159,42 @@ export default function AbandonedCheckoutsPage() {
                       <div className="text-xs text-on-surface-variant">{r.user_phone}</div>
                     )}
                   </td>
+                  <td className="px-5 py-4 max-w-xs">
+                    {r.items && r.items.length > 0 ? (
+                      <ul className="space-y-0.5">
+                        {r.items.map((it, i) => (
+                          <li key={i} className="text-xs text-on-surface">
+                            <span className="font-medium">{it.name}</span>
+                            {it.variant && <span className="text-on-surface-variant"> ({it.variant})</span>}
+                            {it.quantity != null && <span className="text-on-surface-variant"> &times;{it.quantity}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <span className="text-xs text-on-surface-variant">—</span>
+                    )}
+                  </td>
                   <td className="px-5 py-4 font-mono text-xs">
                     {r.cf_order_id || <span className="text-on-surface-variant">none</span>}
                   </td>
                   <td className="px-5 py-4 text-on-surface-variant">{timeAgo(r.created_at)}</td>
                   <td className="px-5 py-4 text-right">
-                    <button
-                      onClick={() => setConfirmId(r.pending_checkout_id)}
-                      disabled={recovering === r.pending_checkout_id || !r.cf_order_id}
-                      className="px-4 py-2 rounded-full bg-primary text-on-primary text-xs font-label font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
-                    >
-                      {recovering === r.pending_checkout_id ? "Recovering…" : "Recover"}
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setRemindConfirm(r)}
+                        disabled={reminding === r.pending_checkout_id || !r.user_email || !r.items?.length}
+                        className="px-4 py-2 rounded-full bg-surface-container-high text-on-surface text-xs font-label font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed hover:bg-surface-container-highest"
+                      >
+                        {reminding === r.pending_checkout_id ? "Sending…" : "Remind"}
+                      </button>
+                      <button
+                        onClick={() => setConfirmId(r.pending_checkout_id)}
+                        disabled={recovering === r.pending_checkout_id || !r.cf_order_id}
+                        className="px-4 py-2 rounded-full bg-primary text-on-primary text-xs font-label font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90"
+                      >
+                        {recovering === r.pending_checkout_id ? "Recovering…" : "Recover"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -199,6 +240,50 @@ export default function AbandonedCheckoutsPage() {
                   className="px-5 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-label font-bold"
                 >
                   Yes, recover
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Remind confirm dialog */}
+      <AnimatePresence>
+        {remindConfirm !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setRemindConfirm(null)}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-surface-container-high rounded-3xl p-6 max-w-md w-full"
+            >
+              <h3 className="font-headline font-bold text-xl text-on-surface mb-2">
+                Email a cart reminder?
+              </h3>
+              <p className="font-body text-sm text-on-surface-variant mb-4">
+                We&apos;ll email <b>{remindConfirm.user_email}</b> a &ldquo;you left something in
+                your cart&rdquo; nudge listing their {remindConfirm.items?.length || 0} item
+                {(remindConfirm.items?.length || 0) === 1 ? "" : "s"}, with a link back to the store.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setRemindConfirm(null)}
+                  className="px-5 py-2.5 rounded-2xl text-sm font-label font-bold hover:bg-surface-container-highest"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => remind(remindConfirm.pending_checkout_id)}
+                  className="px-5 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-label font-bold"
+                >
+                  Send reminder
                 </button>
               </div>
             </motion.div>

@@ -179,6 +179,7 @@ export const api = {
       user_email: string | null;
       user_name: string | null;
       user_phone: string | null;
+      items: Array<{ name: string; variant: string; quantity: number | null }>;
       cf_order_id: string | null;
       cf_payment_session_id: string | null;
       created_at: string | null;
@@ -187,6 +188,11 @@ export const api = {
   recoverAbandonedCheckout: (pendingId: number) =>
     request<{ status: string; order_id?: number; payment_status?: string; total_amount?: number }>(
       `/payments/admin/recover/${pendingId}`,
+      { method: "POST" },
+    ),
+  sendCartReminder: (pendingId: number) =>
+    request<{ status: string; to: string }>(
+      `/payments/admin/pending-checkouts/${pendingId}/send-reminder`,
       { method: "POST" },
     ),
   // Invoice — returns binary PDF blob (not JSON)

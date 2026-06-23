@@ -459,6 +459,9 @@ export default function ProductsPage() {
         savedId = created.id;
       }
       await load();
+      // Refresh brand suggestions so a newly-introduced brand appears in the
+      // dropdown immediately (the datalist is otherwise only loaded on mount).
+      api.getBrands().then(setKnownBrands).catch(() => {});
       // Keep the just-edited product in view in the list pane (don't jump to top)
       if (savedId != null) {
         requestAnimationFrame(() => {

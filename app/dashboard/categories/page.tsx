@@ -108,7 +108,7 @@ export default function CategoriesPage() {
   const [editCat, setEditCat] = useState<Category | null>(null);
 
   // SubCategory form
-  const [subForm, setSubForm] = useState({ name: "", slug: "", category_id: 0, is_active: true, ...emptyCatSeo });
+  const [subForm, setSubForm] = useState<{ name: string; slug: string; category_id: number; is_active: boolean; faqs: { question: string; answer: string }[]; seo_title: string | null; seo_description: string | null; seo_keywords: string | null; og_image: string | null; seo_canonical: string | null; seo_noindex: boolean; }>({ name: "", slug: "", category_id: 0, is_active: true, faqs: [], ...emptyCatSeo });
   const [editSub, setEditSub] = useState<SubCategory | null>(null);
   const [showSubForm, setShowSubForm] = useState<number | null>(null);
 
@@ -172,7 +172,7 @@ export default function CategoriesPage() {
     try {
       if (editSub) { await api.updateSubCategory(editSub.id, subForm); setEditSub(null); }
       else { await api.createSubCategory({ ...subForm }); }
-      setSubForm({ name: "", slug: "", category_id: 0, is_active: true, ...emptyCatSeo });
+      setSubForm({ name: "", slug: "", category_id: 0, is_active: true, faqs: [], ...emptyCatSeo });
       setShowSubForm(null);
       load();
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
@@ -198,7 +198,7 @@ export default function CategoriesPage() {
 
   function startAddSub(catId: number) {
     setEditSub(null);
-    setSubForm({ name: "", slug: "", category_id: catId, is_active: true, ...emptyCatSeo });
+    setSubForm({ name: "", slug: "", category_id: catId, is_active: true, faqs: [], ...emptyCatSeo });
     setShowSubForm(catId);
   }
 
@@ -209,6 +209,7 @@ export default function CategoriesPage() {
       slug: sub.slug,
       category_id: sub.category_id,
       is_active: sub.is_active,
+      faqs: Array.isArray(sub.faqs) ? sub.faqs : [],
       seo_title: sub.seo_title ?? null,
       seo_description: sub.seo_description ?? null,
       seo_keywords: sub.seo_keywords ?? null,
@@ -369,6 +370,64 @@ export default function CategoriesPage() {
                               scopeLabel="this subcategory"
                             />
                           )}
+                          <div className="mt-4 border-t border-outline-variant/20 pt-4">
+                            <div className="flex items-baseline justify-between gap-3 flex-wrap mb-3">
+                              <div>
+                                <h4 className="font-label text-xs uppercase tracking-widest text-on-surface-variant font-bold">FAQ block</h4>
+                                <p className="text-xs text-on-surface-variant mt-1">Shown below the product grid on this sub-category&apos;s page and emitted as FAQPage schema. Plain text only.</p>
+                              </div>
+                              <button type="button"
+                                onClick={() => setSubForm(f => ({ ...f, faqs: [...f.faqs, { question: "", answer: "" }] }))}
+                                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-secondary-container text-on-secondary-container text-xs font-bold hover:opacity-90">
+                                <span className="material-symbols-outlined text-[16px]">add</span>
+                                Add FAQ
+                              </button>
+                            </div>
+                            {subForm.faqs.length === 0 ? (
+                              <p className="text-on-surface-variant text-xs italic">No FAQs yet. Click &quot;Add FAQ&quot; to answer common buyer questions for products in this sub-category.</p>
+                            ) : (
+                              <div className="space-y-3">
+                                {subForm.faqs.map((faq, idx) => (
+                                  <div key={idx} className="rounded-xl border border-outline-variant bg-surface p-4 space-y-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">FAQ #{idx + 1}</span>
+                                      <div className="flex items-center gap-1">
+                                        <button type="button" title="Move up" disabled={idx === 0}
+                                          onClick={() => setSubForm(f => { const next = [...f.faqs]; [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]; return { ...f, faqs: next }; })}
+                                          className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container-highest disabled:opacity-30">
+                                          <span className="material-symbols-outlined text-[16px]">arrow_upward</span>
+                                        </button>
+                                        <button type="button" title="Move down" disabled={idx === subForm.faqs.length - 1}
+                                          onClick={() => setSubForm(f => { const next = [...f.faqs]; [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]]; return { ...f, faqs: next }; })}
+                                          className="p-1.5 rounded-md text-on-surface-variant hover:bg-surface-container-highest disabled:opacity-30">
+                                          <span className="material-symbols-outlined text-[16px]">arrow_downward</span>
+                                        </button>
+                                        <button type="button" title="Delete"
+                                          onClick={() => setSubForm(f => ({ ...f, faqs: f.faqs.filter((_, i) => i !== idx) }))}
+                                          className="p-1.5 rounded-md text-error hover:bg-error-container">
+                                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div>
+                                      <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold flex justify-between"><span>Question</span><span>{faq.question.length}/300</span></label>
+                                      <input className="w-full mt-1 bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary-container"
+                                        value={faq.question} maxLength={300}
+                                        onChange={e => setSubForm(f => { const next = [...f.faqs]; next[idx] = { ...next[idx], question: e.target.value }; return { ...f, faqs: next }; })}
+                                        placeholder="What's the minimum order quantity?" />
+                                    </div>
+                                    <div>
+                                      <label className="font-label text-[10px] uppercase tracking-widest text-on-surface-variant font-bold flex justify-between"><span>Answer</span><span>{faq.answer.length}/2000</span></label>
+                                      <textarea className="w-full mt-1 bg-surface-container-lowest border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm text-on-surface min-h-[90px] focus:outline-none focus:ring-2 focus:ring-secondary-container"
+                                        value={faq.answer} maxLength={2000}
+                                        onChange={e => setSubForm(f => { const next = [...f.faqs]; next[idx] = { ...next[idx], answer: e.target.value }; return { ...f, faqs: next }; })}
+                                        placeholder="Our standard MOQ is 50 units, but pilots can go as low as 25." />
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                       

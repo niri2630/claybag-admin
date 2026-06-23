@@ -344,7 +344,7 @@ export interface SeoFields {
   seo_noindex?: boolean | null;
 }
 export interface Category extends SeoFields { id: number; name: string; slug: string; icon: string; image_url?: string; is_active: boolean; subcategories: SubCategory[]; }
-export interface SubCategory extends SeoFields { id: number; name: string; slug: string; category_id: number; image_url?: string; is_active: boolean; }
+export interface SubCategory extends SeoFields { id: number; name: string; slug: string; category_id: number; image_url?: string; is_active: boolean; faqs?: BlogFaqItem[]; }
 
 // Curated for Businesses — industries/business verticals (flat, admin-managed).
 export interface BusinessCategory extends SeoFields {

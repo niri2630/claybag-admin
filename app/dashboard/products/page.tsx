@@ -348,7 +348,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], branding_available: true, business_category_ids: [] as number[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
+  const [form, setForm] = useState({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], branding_available: true, business_category_ids: [] as number[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null as null | "business_card" | "letterhead", price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
   const [knownBrands, setKnownBrands] = useState<string[]>([]);
   // Industries available for tagging (admin manages them in /dashboard/industries)
   const [industries, setIndustries] = useState<BusinessCategory[]>([]);
@@ -597,7 +597,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], branding_available: true, business_category_ids: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], branding_available: true, business_category_ids: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -633,6 +633,7 @@ export default function ProductsPage() {
       is_deal_of_month: p.is_deal_of_month || false,
       is_express_bangalore: p.is_express_bangalore || false,
       is_enquiry_only: p.is_enquiry_only || false,
+      start_strong_role: p.start_strong_role === "business_card" || p.start_strong_role === "letterhead" ? p.start_strong_role : null,
       price_range_max: p.price_range_max ?? null,
       seo_title: p.seo_title ?? null,
       seo_description: p.seo_description ?? null,
@@ -1316,6 +1317,22 @@ export default function ProductsPage() {
                     </p>
                   </div>
                 )}
+
+                <div className="mt-4 p-4 rounded-2xl bg-secondary-container/20 border border-secondary-container/40">
+                  <p className="text-[11px] uppercase font-bold tracking-widest text-on-surface-variant mb-2">Start Strong kit role</p>
+                  <select
+                    value={form.start_strong_role ?? ""}
+                    onChange={(e) => setForm((f) => ({ ...f, start_strong_role: e.target.value === "" ? null : (e.target.value as "business_card" | "letterhead") }))}
+                    className="w-full px-3 py-2.5 rounded-xl bg-surface border border-outline-variant text-sm outline-none focus:border-primary"
+                  >
+                    <option value="">Not part of Start Strong</option>
+                    <option value="business_card">Business Card (free up to 100)</option>
+                    <option value="letterhead">Letterhead (free up to 10)</option>
+                  </select>
+                  <p className="text-[11px] text-on-surface-variant mt-2 leading-relaxed">
+                    Tagging makes this product count toward a verified startup&apos;s free kit. The refund value is capped at <strong>100 business cards</strong> and <strong>10 letterheads</strong>; refunds are issued manually in Cashfree after approval.
+                  </p>
+                </div>
               </div>
 
               {/* SEO override block (collapsible) */}

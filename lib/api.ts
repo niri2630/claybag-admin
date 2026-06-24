@@ -239,6 +239,17 @@ export const api = {
   rejectReview: (id: number) => request<Review>(`/reviews/${id}/reject`, { method: "PUT" }),
   deleteReview: (id: number) => request(`/reviews/${id}`, { method: "DELETE" }),
 
+  // Start Strong
+  getStartStrongApplications: () =>
+    request<StartStrongApplication[]>("/admin/start-strong"),
+  approveStartStrong: (id: number) =>
+    request<StartStrongApplication>(`/admin/start-strong/${id}/approve`, { method: "POST" }),
+  rejectStartStrong: (id: number, reason: string) =>
+    request<StartStrongApplication>(`/admin/start-strong/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+
   // Reports & Exports
   getSalesSummary: (start?: string, end?: string) => {
     const params = new URLSearchParams();
@@ -413,6 +424,7 @@ export interface OrderItem { id: number; product_id: number; product_name?: stri
 export interface TrackingEntry { id: number; status: string; note?: string; created_at: string; }
 export interface Review { id: number; user_id: number; product_id: number; rating: number; comment?: string; is_approved: boolean; created_at: string; user_name: string; product_name: string; }
 export interface CompanyProfile { id: number; user_id: number; company_name: string; business_type: string; gst_number?: string; registered_address?: string; contact_person?: string; description?: string; created_at: string; updated_at?: string; }
+export interface StartStrongApplication { id: number; user_id: number; user_email?: string | null; company_name: string; business_type: string; gst_number?: string | null; incorporation_date: string; document_type: "incorporation" | "gst"; order_id?: number | null; status: "submitted" | "approved" | "rejected"; rejection_reason?: string | null; document_url?: string | null; cf_order_id?: string | null; eligible_amount: number; }
 export interface Address { id: number; label: string; name: string; phone: string; address: string; city: string; state?: string | null; pincode: string; is_default: boolean; created_at?: string; }
 export interface WalletInfo { id: number; user_id: number; user_name?: string; user_email?: string; balance: number; created_at?: string; }
 export interface ReferralInfo { id: number; referrer_name?: string; referrer_email?: string; referred_name?: string; referred_email?: string; referral_code: string; status: string; coins_credited: boolean; created_at?: string; completed_at?: string; }

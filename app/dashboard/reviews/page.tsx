@@ -3,6 +3,13 @@ import { useEffect, useState } from "react";
 import { api, Review } from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+function imageUrl(path: string) {
+  if (path.startsWith("http")) return path;
+  if (path.startsWith("/")) return `${API_BASE}${path}`;
+  return path;
+}
+
 type FilterTab = "all" | "pending" | "approved";
 
 export default function ReviewsPage() {
@@ -217,6 +224,17 @@ export default function ReviewsPage() {
                         <p className="text-sm text-on-surface font-medium leading-relaxed line-clamp-3">
                           &ldquo;{review.comment}&rdquo;
                         </p>
+                      )}
+
+                      {review.image_urls && review.image_urls.length > 0 && (
+                        <div className="flex items-center gap-2 mt-3 flex-wrap">
+                          {review.image_urls.map((url) => (
+                            <a key={url} href={imageUrl(url)} target="_blank" rel="noopener noreferrer">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={imageUrl(url)} alt="Review photo" className="w-16 h-16 object-cover rounded-lg border border-outline-variant/30 hover:opacity-80 transition-opacity" />
+                            </a>
+                          ))}
+                        </div>
                       )}
 
                       <p className="text-xs font-label font-bold text-on-surface-variant mt-3 flex items-center gap-1.5">

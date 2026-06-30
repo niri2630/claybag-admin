@@ -598,6 +598,22 @@ export default function ProductsPage() {
   }
 
   function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], branding_available: true, business_category_ids: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
+  async function duplicateProductRow(p: Product) {
+    try {
+      const copy = await api.duplicateProduct(p.id);
+      await load();
+      // Open the new draft so the admin can edit and then activate it.
+      startEdit(copy);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e: unknown) { setError(e instanceof Error ? e.message : "Failed to duplicate product"); }
+  }
+
+  async function duplicateSlab(sid: number) {
+    if (!selected) return;
+    try { await api.duplicateDiscountSlab(selected.id, sid); const p = await api.getProduct(selected.id); setSelected(p); }
+    catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
+  }
+
   function startEdit(p: Product) {
     setSelected(p);
     setEditMode(true);
@@ -736,6 +752,13 @@ export default function ProductsPage() {
                       )}
                       <div className="flex items-center justify-between">
                         <p className="font-headline font-bold text-on-surface line-clamp-1 flex-1">{p.name}</p>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); duplicateProductRow(p); }}
+                          className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg hover:bg-secondary-container text-on-surface-variant/50 hover:text-on-surface-variant transition-colors ml-2"
+                          title="Duplicate product"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                        </button>
                         <button
                           onClick={(e) => { e.stopPropagation(); requestDeleteProduct(p); }}
                           className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg hover:bg-error-container text-error/40 hover:text-error transition-colors ml-2"
@@ -1690,6 +1713,7 @@ export default function ProductsPage() {
                               ) : (
                                 <>
                                   <button onClick={() => startEditSlab(s)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-secondary-container transition-colors" title="Edit"><span className="material-symbols-outlined text-[16px]">edit</span></button>
+                                  <button onClick={() => duplicateSlab(s.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-on-surface-variant hover:bg-secondary-container transition-colors" title="Duplicate"><span className="material-symbols-outlined text-[16px]">content_copy</span></button>
                                   <button onClick={() => deleteDiscount(s.id)} className="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center text-error hover:bg-error-container transition-colors" title="Delete"><span className="material-symbols-outlined text-[16px]">delete</span></button>
                                 </>
                               )}

@@ -99,6 +99,7 @@ export const api = {
   updateProduct: (id: number, data: Partial<Product> & { business_category_ids?: number[] }) =>
     request<Product>(`/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteProduct: (id: number) => request(`/products/${id}`, { method: "DELETE" }),
+  duplicateProduct: (id: number) => request<Product>(`/products/${id}/duplicate`, { method: "POST" }),
   uploadProductImage: (productId: number, file: File, isPrimary = false, variantId?: number) => {
     const fd = new FormData(); fd.append("file", file);
     const params = new URLSearchParams({ is_primary: String(isPrimary) });
@@ -143,6 +144,7 @@ export const api = {
   addDiscountSlab: (productId: number, data: { variant_id?: number | null; min_quantity: number; price_per_unit?: number; discount_percentage?: number }) => request<DiscountSlab>(`/products/${productId}/discounts`, { method: "POST", body: JSON.stringify(data) }),
   updateDiscountSlab: (productId: number, slabId: number, data: { variant_id?: number | null; min_quantity?: number; price_per_unit?: number }) => request<DiscountSlab>(`/products/${productId}/discounts/${slabId}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteDiscountSlab: (productId: number, slabId: number) => request(`/products/${productId}/discounts/${slabId}`, { method: "DELETE" }),
+  duplicateDiscountSlab: (productId: number, slabId: number) => request<DiscountSlab>(`/products/${productId}/discounts/${slabId}/duplicate`, { method: "POST" }),
   setPrimaryImage: (productId: number, imageId: number) => request<void>(`/uploads/products/${productId}/images/${imageId}/primary`, { method: "PUT" }),
 
   // Users

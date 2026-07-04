@@ -768,8 +768,16 @@ export default function ProductsPage() {
                       </div>
                       <div className="flex items-center justify-between mt-2">
                         <span className="font-label font-bold text-sm text-on-surface-variant">
-                          ₹{p.base_price.toLocaleString()}
-                          {p.compare_price && p.compare_price > p.base_price && (
+                          {(() => {
+                            // Option-priced products have base_price 0 — show the cheapest option
+                            const opts = (p.variants || []).filter((v) => v.option_price != null && v.option_price > 0);
+                            if (p.base_price > 0 || !opts.length) {
+                              return <>₹{p.base_price.toLocaleString()}</>;
+                            }
+                            const lo = Math.min(...opts.map((v) => v.option_price!));
+                            return <>₹{lo.toLocaleString()}{opts.length > 1 ? <span className="text-xs font-normal text-outline"> onwards</span> : null}</>;
+                          })()}
+                          {p.compare_price && p.compare_price > p.base_price && p.base_price > 0 && (
                             <span className="ml-1.5 text-xs font-normal line-through text-outline">₹{p.compare_price.toLocaleString()}</span>
                           )}
                         </span>

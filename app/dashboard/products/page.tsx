@@ -363,7 +363,7 @@ export default function ProductsPage() {
     api.getBrands().then(setKnownBrands).catch(() => {});
     api.getBusinessCategories().then(setIndustries).catch(() => {});
   }, []);
-  const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
+  const ALL_BRANDING_METHODS = ["Embroidery", "Screen Printing", "Sublimation Print", "Digital Printing", "Offset Printing", "Embossing", "UV Printing", "UV DTF Printing", "Laser Engraving", "Vinyl Heat Press"];
   const [editMode, setEditMode] = useState(false);
   const [filterSub, setFilterSub] = useState<number | undefined>();
   const [searchQuery, setSearchQuery] = useState("");

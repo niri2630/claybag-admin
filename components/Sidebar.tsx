@@ -11,6 +11,7 @@ const FULL_NAV: NavItem[] = [
   { href: "/dashboard/categories", label: "Categories", icon: "category" },
   { href: "/dashboard/industries", label: "Industries", icon: "domain" },
   { href: "/dashboard/products", label: "Products", icon: "inventory_2" },
+  { href: "/dashboard/addons", label: "Add-ons", icon: "add_shopping_cart" },
   { href: "/dashboard/orders", label: "Orders", icon: "shopping_cart" },
   { href: "/dashboard/abandoned-checkouts", label: "Abandoned Carts", icon: "warning" },
   { href: "/dashboard/reviews", label: "Reviews", icon: "rate_review" },

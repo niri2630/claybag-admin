@@ -348,7 +348,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], branding_available: true, business_category_ids: [] as number[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null as null | "business_card" | "letterhead", price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
+  const [form, setForm] = useState({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], branding_available: true, business_category_ids: [] as number[], additional_subcategory_ids: [] as number[], size_chart_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null as null | "business_card" | "letterhead", price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
   const [knownBrands, setKnownBrands] = useState<string[]>([]);
   // Industries available for tagging (admin manages them in /dashboard/industries)
   const [industries, setIndustries] = useState<BusinessCategory[]>([]);
@@ -446,7 +446,12 @@ export default function ProductsPage() {
       }
     }
     try {
-      const payload = { ...form, brand: form.brand.trim() || null };
+      const payload = {
+        ...form,
+        brand: form.brand.trim() || null,
+        // Never let the primary subcategory leak into the additional tags.
+        additional_subcategory_ids: form.additional_subcategory_ids.filter(id => id !== form.subcategory_id),
+      };
       let savedId: number | null = null;
       if (editMode && selected) {
         const updated = await api.updateProduct(selected.id, payload);
@@ -597,7 +602,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], branding_available: true, business_category_ids: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], branding_available: true, business_category_ids: [], additional_subcategory_ids: [], size_chart_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
   async function duplicateProductRow(p: Product) {
     try {
       const copy = await api.duplicateProduct(p.id);
@@ -635,6 +640,7 @@ export default function ProductsPage() {
       branding_methods: p.branding_methods || [],
       branding_available: p.branding_available !== false,
       business_category_ids: (p.business_categories || []).map(bc => bc.id),
+      additional_subcategory_ids: (p.additional_subcategories || []).map(s => s.id),
       size_chart_url: p.size_chart_url || "",
       hsn_code: p.hsn_code || "",
       gst_rate: p.gst_rate ?? null,
@@ -839,6 +845,45 @@ export default function ProductsPage() {
                     <option value={0}>Select Designation...</option>
                     {allSubs.map(s => <option key={s.id} value={s.id}>{s.catName} → {s.name}</option>)}
                   </select>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-1">
+                    Also list under (additional sub-categories)
+                  </label>
+                  <p className="text-xs text-on-surface-variant mb-3">
+                    Tag this product into other sub-categories so it also appears on those pages.
+                    The primary sub-category above stays its home and drives the product URL. Leave empty for none.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {allSubs.filter(s => s.id !== form.subcategory_id).map(s => {
+                      const isActive = form.additional_subcategory_ids.includes(s.id);
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setForm(f => ({
+                            ...f,
+                            additional_subcategory_ids: isActive
+                              ? f.additional_subcategory_ids.filter(id => id !== s.id)
+                              : [...f.additional_subcategory_ids, s.id],
+                          }))}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                            isActive
+                              ? "bg-primary text-on-primary border-primary shadow-sm"
+                              : "bg-surface-container border-outline-variant/50 text-on-surface-variant hover:border-primary/50"
+                          } ${!s.is_active ? "opacity-60" : ""}`}
+                          title={!s.is_active ? "This sub-category is currently hidden from customers" : undefined}
+                        >
+                          {s.catName} → {s.name}
+                          {!s.is_active && <span className="ml-2 text-[9px] opacity-70">(hidden)</span>}
+                        </button>
+                      );
+                    })}
+                    {allSubs.filter(s => s.id !== form.subcategory_id).length === 0 && (
+                      <span className="text-xs text-on-surface-variant opacity-70">No other sub-categories available.</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="col-span-2 md:col-span-1">

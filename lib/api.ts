@@ -94,9 +94,9 @@ export const api = {
   // `business_category_ids` is write-only — the backend stores it in the M2M
   // junction table and surfaces the resolved objects in `business_categories`
   // on the way out.
-  createProduct: (data: Partial<Product> & { business_category_ids?: number[] }) =>
+  createProduct: (data: Partial<Product> & { business_category_ids?: number[]; additional_subcategory_ids?: number[] }) =>
     request<Product>("/products", { method: "POST", body: JSON.stringify(data) }),
-  updateProduct: (id: number, data: Partial<Product> & { business_category_ids?: number[] }) =>
+  updateProduct: (id: number, data: Partial<Product> & { business_category_ids?: number[]; additional_subcategory_ids?: number[] }) =>
     request<Product>(`/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteProduct: (id: number) => request(`/products/${id}`, { method: "DELETE" }),
   duplicateProduct: (id: number) => request<Product>(`/products/${id}/duplicate`, { method: "POST" }),
@@ -395,7 +395,7 @@ export interface BusinessCategoryUpdate extends SeoFields {
 }
 // Brief reference used inside Product.business_categories.
 export interface BusinessCategoryRef { id: number; name: string; slug: string; }
-export interface Product extends SeoFields { id: number; name: string; slug?: string; description?: string; short_description?: string | null; branding_available?: boolean; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; design_upload_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; hsn_code?: string | null; gst_rate?: number | null; brand?: string | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; is_deal_of_month?: boolean; is_express_bangalore?: boolean; is_enquiry_only?: boolean; start_strong_role?: string | null; price_range_max?: number | null; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; business_categories?: BusinessCategoryRef[]; }
+export interface Product extends SeoFields { id: number; name: string; slug?: string; description?: string; short_description?: string | null; branding_available?: boolean; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; design_upload_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; hsn_code?: string | null; gst_rate?: number | null; brand?: string | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; is_deal_of_month?: boolean; is_express_bangalore?: boolean; is_enquiry_only?: boolean; start_strong_role?: string | null; price_range_max?: number | null; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; business_categories?: BusinessCategoryRef[]; additional_subcategories?: { id: number; name: string; slug: string; category_id: number }[]; }
 export interface PageSeo extends SeoFields { id: number; route: string; label?: string | null; created_at?: string | null; updated_at?: string | null; }
 export interface PageSeoCreate extends SeoFields { route: string; label?: string | null; }
 export interface PageSeoUpdate extends SeoFields { label?: string | null; }

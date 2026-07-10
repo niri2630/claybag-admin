@@ -118,7 +118,7 @@ export default function AddonsPage() {
           <span>Any product can be an add-on. It&apos;s shown in the cart as &quot;Add {"{"}product{"}"} for ₹X&quot; whenever the shopper has at least one regular product in their cart.</span></p>
         <p className="pl-7">The offer price is the product&apos;s <strong>own price × its MOQ</strong> — e.g. a ₹0.99/card product with MOQ 100 is offered at ₹99.</p>
         <p className="pl-7">A cart containing <strong>only</strong> add-ons can&apos;t check out — the shopper is asked to add a regular product first.</p>
-        <p className="pl-7">Tip: to keep an add-on out of the normal shop, put its product under a hidden (inactive) sub-category — it still works as an add-on.</p>
+        <p className="pl-7"><strong>Flagging a product as an add-on hides it from the normal shop</strong> (search, category pages, homepage sections). It appears only here and as a cart add-on.</p>
       </div>
 
       {error && (

@@ -34,6 +34,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
   const [note, setNote] = useState("");
   const [pendingStatusChange, setPendingStatusChange] = useState<{ order: Order; newStatus: string } | null>(null);
 
@@ -55,7 +56,16 @@ export default function OrdersPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  const filtered = statusFilter ? orders.filter(o => o.status === statusFilter) : orders;
+  const q = search.trim().toLowerCase();
+  const filtered = orders.filter(o => {
+    if (statusFilter && o.status !== statusFilter) return false;
+    if (q) {
+      const num = (o.order_number ?? `#${o.id}`).toLowerCase();
+      const name = (o.shipping_name ?? "").toLowerCase();
+      if (!num.includes(q) && !name.includes(q)) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="pb-12 max-w-[1400px] mx-auto h-[calc(100vh-80px)] flex flex-col">
@@ -81,7 +91,16 @@ export default function OrdersPage() {
       <div className="flex gap-8 flex-1 min-h-0">
         {/* Order List */}
         <div className="w-[380px] flex-shrink-0 flex flex-col min-h-0 h-full">
-          <div className="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant/30 p-4 mb-4 shrink-0">
+          <div className="bg-surface-container-lowest rounded-3xl shadow-sm border border-outline-variant/30 p-4 mb-4 shrink-0 space-y-3">
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by name or order no."
+                className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl pl-11 pr-4 py-3 text-sm font-medium text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+              />
+            </div>
             <div className="relative">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">filter_list</span>
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}

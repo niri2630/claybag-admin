@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { api, Product } from "@/lib/api";
+import { api, Product, Category } from "@/lib/api";
 
 // Computed add-on offer price: the product's base price for a full minimum pack.
 // e.g. ₹0.99/card × MOQ 100 = ₹99. MOQ null → single unit.
@@ -16,6 +16,7 @@ function primaryImage(p: Product): string | null {
 
 export default function AddonsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -25,8 +26,9 @@ export default function AddonsPage() {
   async function load() {
     setLoading(true);
     try {
-      const all = await api.getProducts();
+      const [all, cats] = await Promise.all([api.getProducts(), api.getCategories()]);
       setProducts(all);
+      setCategories(cats);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load products");
     } finally {
@@ -119,6 +121,7 @@ export default function AddonsPage() {
         <p className="pl-7">The offer price is the product&apos;s <strong>own price × its MOQ</strong> — e.g. a ₹0.99/card product with MOQ 100 is offered at ₹99.</p>
         <p className="pl-7">A cart containing <strong>only</strong> add-ons can&apos;t check out — the shopper is asked to add a regular product first.</p>
         <p className="pl-7"><strong>Flagging a product as an add-on hides it from the normal shop</strong> (search, category pages, homepage sections). It appears only here and as a cart add-on.</p>
+        <p className="pl-7"><strong>Targeting (optional):</strong> restrict an add-on to carts containing a specific category, and cap its quantity to how many of those items are in the cart — e.g. a pen box offered only with pens, one box per pen. Leave &quot;Any order&quot; for the default behaviour.</p>
       </div>
 
       {error && (
@@ -154,7 +157,8 @@ export default function AddonsPage() {
           {addons.map((p, idx) => {
             const img = primaryImage(p);
             return (
-              <div key={p.id} className="flex items-center gap-4 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4">
+              <div key={p.id} className="bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-4">
+              <div className="flex items-center gap-4">
                 {/* reorder */}
                 <div className="flex flex-col">
                   <button disabled={idx === 0 || busyId === p.id} onClick={() => move(idx, -1)}
@@ -188,6 +192,39 @@ export default function AddonsPage() {
                   <span className="material-symbols-outlined text-base">{busyId === p.id ? "progress_activity" : "remove_circle"}</span>
                   Remove
                 </button>
+              </div>
+              {/* Targeting — which product triggers this add-on, and the qty cap */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-3 pt-3 border-t border-outline-variant/20 pl-11 text-sm">
+                <label className="flex items-center gap-2">
+                  <span className="text-on-surface-variant font-medium">Offer only with:</span>
+                  <select
+                    value={p.addon_trigger_category_id ?? ""}
+                    onChange={(e) =>
+                      patch(p.id, {
+                        addon_trigger_category_id: e.target.value ? Number(e.target.value) : null,
+                        ...(e.target.value ? {} : { addon_cap_to_trigger: false }),
+                      })
+                    }
+                    disabled={busyId === p.id}
+                    className="bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-2.5 py-1.5 text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary-container"
+                  >
+                    <option value="">Any order</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className={`flex items-center gap-2 ${p.addon_trigger_category_id ? "" : "opacity-40"}`}>
+                  <input
+                    type="checkbox"
+                    checked={!!p.addon_cap_to_trigger}
+                    disabled={!p.addon_trigger_category_id || busyId === p.id}
+                    onChange={(e) => patch(p.id, { addon_cap_to_trigger: e.target.checked })}
+                    className="w-4 h-4 accent-primary"
+                  />
+                  <span className="text-on-surface-variant font-medium">Cap quantity to how many are in the cart</span>
+                </label>
+              </div>
               </div>
             );
           })}

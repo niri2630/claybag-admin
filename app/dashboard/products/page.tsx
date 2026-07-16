@@ -348,7 +348,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const imageInput = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], branding_available: true, business_category_ids: [] as number[], additional_subcategory_ids: [] as number[], size_chart_url: "", youtube_url: "", hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null as null | "business_card" | "letterhead", price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
+  const [form, setForm] = useState({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null as number | null, moq_unit: "pcs", pricing_mode: "per_unit" as "per_unit" | "per_area", variant_mode_override: null as null | "option_dropdown", option_label: "", branding_info: "", branding_methods: [] as string[], branding_available: true, business_category_ids: [] as number[], additional_subcategory_ids: [] as number[], size_chart_url: "", youtube_url: "", back_print_price: null as number | null, hsn_code: "", gst_rate: null as number | null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null as number | null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null as null | "business_card" | "letterhead", price_range_max: null as number | null, seo_title: null as string | null, seo_description: null as string | null, seo_keywords: null as string | null, og_image: null as string | null, seo_canonical: null as string | null, seo_noindex: false });
   const [knownBrands, setKnownBrands] = useState<string[]>([]);
   // Industries available for tagging (admin manages them in /dashboard/industries)
   const [industries, setIndustries] = useState<BusinessCategory[]>([]);
@@ -602,7 +602,7 @@ export default function ProductsPage() {
     } catch (e: unknown) { setError(e instanceof Error ? e.message : "Error"); }
   }
 
-  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], branding_available: true, business_category_ids: [], additional_subcategory_ids: [], size_chart_url: "", youtube_url: "", hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
+  function startNew() { setEditMode(false); setSelected(null); setForm({ name: "", description: "", short_description: "", specifications: "", use_cases: "", materials: "", delivery_info: "", design_upload_info: "", min_order_qty: null, moq_unit: "pcs", pricing_mode: "per_unit", variant_mode_override: null, option_label: "", branding_info: "", branding_methods: [], branding_available: true, business_category_ids: [], additional_subcategory_ids: [], size_chart_url: "", youtube_url: "", back_print_price: null, hsn_code: "", gst_rate: null, brand: "", subcategory_id: 0, base_price: 0, compare_price: null, is_active: true, has_variants: false, is_featured: false, is_new_arrival: false, is_deal_of_month: false, is_express_bangalore: false, is_enquiry_only: false, start_strong_role: null, price_range_max: null, seo_title: null, seo_description: null, seo_keywords: null, og_image: null, seo_canonical: null, seo_noindex: false }); }
   async function duplicateProductRow(p: Product) {
     try {
       const copy = await api.duplicateProduct(p.id);
@@ -643,6 +643,7 @@ export default function ProductsPage() {
       additional_subcategory_ids: (p.additional_subcategories || []).map(s => s.id),
       size_chart_url: p.size_chart_url || "",
       youtube_url: p.youtube_url || "",
+      back_print_price: p.back_print_price ?? null,
       hsn_code: p.hsn_code || "",
       gst_rate: p.gst_rate ?? null,
       brand: p.brand ?? "",
@@ -1220,6 +1221,25 @@ export default function ProductsPage() {
                   />
                   <p className="text-xs text-on-surface-variant/70 mt-1.5">
                     Shows a YouTube icon on the product page that opens the video in a popup — shoppers watch without leaving ClayBag. Leave blank for no video.
+                  </p>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="font-label font-bold text-xs uppercase tracking-wider text-on-surface-variant block mb-2">
+                    <span className="material-symbols-outlined text-[14px] align-middle mr-1">flip_to_back</span>
+                    Back-print price (₹ / unit)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={form.back_print_price ?? ""}
+                    onChange={e => setForm(f => ({ ...f, back_print_price: e.target.value === "" ? null : Number(e.target.value) }))}
+                    placeholder="e.g. 20 — leave blank to hide the Back print option"
+                    className="w-full bg-surface-container border border-outline-variant/50 rounded-2xl px-4 py-3.5 text-on-surface font-medium focus:outline-none focus:ring-2 focus:ring-secondary-container transition-all"
+                  />
+                  <p className="text-xs text-on-surface-variant/70 mt-1.5">
+                    Adds a &quot;Print Sides: Front / Back&quot; choice on the product page. Front is free; choosing Back adds this amount per unit (charged in the cart). The customer&apos;s choice shows on the order. Set it on t-shirts; leave blank elsewhere.
                   </p>
                 </div>
 

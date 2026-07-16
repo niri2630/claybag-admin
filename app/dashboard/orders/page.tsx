@@ -280,6 +280,9 @@ export default function OrdersPage() {
                                 {item.variant_label && (
                                   <p className="text-xs text-on-surface-variant mt-0.5">{item.variant_label}</p>
                                 )}
+                                {item.back_print_charge ? (
+                                  <p className="text-xs font-semibold text-primary mt-0.5">Print sides: Front + Back (+₹{item.back_print_charge.toLocaleString("en-IN")}/unit)</p>
+                                ) : null}
                                 <p className="text-[10px] text-on-surface-variant/70 font-mono mt-1">ID: {item.product_id}{item.variant_id ? ` · V${item.variant_id}` : ""}</p>
                               </div>
                             </div>

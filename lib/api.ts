@@ -192,6 +192,13 @@ export const api = {
       `/payments/admin/recover/${pendingId}`,
       { method: "POST" },
     ),
+  // Force-recover: materialize the order WITHOUT checking Cashfree. Only use when
+  // you've confirmed payment in the Cashfree dashboard but Recover keeps failing.
+  forceRecoverAbandonedCheckout: (pendingId: number) =>
+    request<{ status: string; order_id?: number; payment_status?: string; total_amount?: number }>(
+      `/payments/admin/force-recover/${pendingId}`,
+      { method: "POST" },
+    ),
   sendCartReminder: (pendingId: number) =>
     request<{ status: string; to: string }>(
       `/payments/admin/pending-checkouts/${pendingId}/send-reminder`,

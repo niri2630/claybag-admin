@@ -27,6 +27,7 @@ export default function AbandonedCheckoutsPage() {
   const [error, setError] = useState("");
   const [recovering, setRecovering] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [forceConfirmId, setForceConfirmId] = useState<number | null>(null);
   const [reminding, setReminding] = useState<number | null>(null);
   const [remindConfirm, setRemindConfirm] = useState<PendingRow | null>(null);
   const [toast, setToast] = useState<{ kind: "success" | "info" | "error"; msg: string } | null>(null);
@@ -74,6 +75,33 @@ export default function AbandonedCheckoutsPage() {
       await load();
     } catch (e) {
       setToast({ kind: "error", msg: e instanceof Error ? e.message : "Recovery failed" });
+    } finally {
+      setRecovering(null);
+      setTimeout(() => setToast(null), 6000);
+    }
+  }
+
+  async function forceRecover(id: number) {
+    setRecovering(id);
+    setForceConfirmId(null);
+    try {
+      const result = await api.forceRecoverAbandonedCheckout(id);
+      if (result.status === "force_recovered") {
+        setToast({
+          kind: "success",
+          msg: `Force-recovered as Order #${result.order_id} (₹${result.total_amount}). It's now in the Orders list.`,
+        });
+      } else if (result.status === "already_materialized") {
+        setToast({
+          kind: "info",
+          msg: `This checkout was already recovered (Order #${result.order_id}).`,
+        });
+      } else {
+        setToast({ kind: "info", msg: `Status: ${result.status}` });
+      }
+      await load();
+    } catch (e) {
+      setToast({ kind: "error", msg: e instanceof Error ? e.message : "Force-recovery failed" });
     } finally {
       setRecovering(null);
       setTimeout(() => setToast(null), 6000);
@@ -194,6 +222,14 @@ export default function AbandonedCheckoutsPage() {
                       >
                         {recovering === r.pending_checkout_id ? "Recovering…" : "Recover"}
                       </button>
+                      <button
+                        onClick={() => setForceConfirmId(r.pending_checkout_id)}
+                        disabled={recovering === r.pending_checkout_id}
+                        title="Create the order WITHOUT checking Cashfree — only if you've confirmed the payment in the Cashfree dashboard"
+                        className="px-4 py-2 rounded-full border border-red-300 text-red-600 text-xs font-label font-bold uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-50"
+                      >
+                        Force
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -240,6 +276,51 @@ export default function AbandonedCheckoutsPage() {
                   className="px-5 py-2.5 rounded-2xl bg-primary text-on-primary text-sm font-label font-bold"
                 >
                   Yes, recover
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Force-recover confirm dialog */}
+      <AnimatePresence>
+        {forceConfirmId !== null && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setForceConfirmId(null)}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-surface-container-high rounded-3xl p-6 max-w-md w-full border-2 border-red-300"
+            >
+              <h3 className="font-headline font-bold text-xl text-red-600 mb-2">
+                Force-recover without checking Cashfree?
+              </h3>
+              <p className="font-body text-sm text-on-surface-variant mb-6">
+                This creates a <b>PAID</b> order directly from the cart, <b>without</b> asking
+                Cashfree whether the payment succeeded. Only do this if you&apos;ve already
+                confirmed the payment in the Cashfree dashboard. The order note will record
+                that it was force-recovered.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setForceConfirmId(null)}
+                  className="px-5 py-2.5 rounded-2xl text-sm font-label font-bold hover:bg-surface-container-highest"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => forceRecover(forceConfirmId)}
+                  className="px-5 py-2.5 rounded-2xl bg-red-600 text-white text-sm font-label font-bold hover:bg-red-700"
+                >
+                  Yes, force-recover
                 </button>
               </div>
             </motion.div>

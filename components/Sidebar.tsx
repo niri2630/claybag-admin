@@ -22,6 +22,7 @@ const FULL_NAV: NavItem[] = [
   { href: "/dashboard/page-seo", label: "Page SEO", icon: "travel_explore" },
   { href: "/dashboard/static-pages", label: "Page Content", icon: "article" },
   { href: "/dashboard/blog", label: "Blog", icon: "edit_note" },
+  { href: "/dashboard/design-kit", label: "Design Kit", icon: "palette" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ];
 

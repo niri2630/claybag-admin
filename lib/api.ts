@@ -304,6 +304,34 @@ export const api = {
     fd.append("file", file);
     return upload<{ url: string }>("/blog/admin/upload-image", fd);
   },
+
+  // Design Kit — creative-services offerings shown on /design-kit
+  getDesignKitItems: () => request<DesignKitItem[]>("/design-kit/admin"),
+  createDesignKitItem: (data: DesignKitItemInput) =>
+    request<DesignKitItem>("/design-kit/admin", { method: "POST", body: JSON.stringify(data) }),
+  updateDesignKitItem: (id: number, data: Partial<DesignKitItemInput>) =>
+    request<DesignKitItem>(`/design-kit/admin/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteDesignKitItem: (id: number) =>
+    request(`/design-kit/admin/${id}`, { method: "DELETE" }),
+};
+
+export interface DesignKitItem {
+  id: number;
+  title: string;
+  price: string;
+  price_note: string | null;
+  description: string;
+  sort_order: number;
+  is_active: boolean;
+}
+
+export type DesignKitItemInput = {
+  title: string;
+  price: string;
+  price_note: string | null;
+  description: string;
+  sort_order: number;
+  is_active: boolean;
 };
 
 // Helper: fetch a CSV endpoint with auth, trigger a browser download

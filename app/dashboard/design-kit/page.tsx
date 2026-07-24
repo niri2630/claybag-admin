@@ -6,6 +6,8 @@ import { api, Product } from "@/lib/api";
 
 // The Design Kit offerings are real catalogue products under this subcategory.
 const SUB_SLUG = "design-kit-services";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const imgSrc = (u: string) => (u.startsWith("http") ? u : `${BASE_URL}${u}`);
 
 export default function DesignKitAdminPage() {
   const [rows, setRows] = useState<Product[]>([]);
@@ -261,7 +263,7 @@ export default function DesignKitAdminPage() {
                       className="relative w-20 h-20 rounded-xl overflow-hidden border border-outline-variant/40 bg-surface-container"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.image_url} alt="" className="w-full h-full object-cover" />
+                      <img src={imgSrc(img.image_url)} alt="" className="w-full h-full object-cover" />
                       <button
                         onClick={() => removeImg(row, img.id)}
                         disabled={busyId === row.id}

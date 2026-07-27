@@ -304,6 +304,60 @@ export const api = {
     fd.append("file", file);
     return upload<{ url: string }>("/blog/admin/upload-image", fd);
   },
+
+  // Swag Box — build-your-own hamper config + sections
+  getSwagConfigs: () => request<SwagConfig[]>("/swag-box/admin/list"),
+  createSwagConfig: (data: SwagConfigInput) =>
+    request<SwagConfig>("/swag-box/admin", { method: "POST", body: JSON.stringify(data) }),
+  updateSwagConfig: (id: number, data: Partial<SwagConfigInput>) =>
+    request<SwagConfig>(`/swag-box/admin/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteSwagConfig: (id: number) =>
+    request(`/swag-box/admin/${id}`, { method: "DELETE" }),
+};
+
+export interface SwagSection {
+  id?: number;
+  subcategory_id: number;
+  subcategory_name?: string | null;
+  title?: string;
+  title_override?: string | null;
+  sort_order: number;
+  min_picks: number;
+  max_picks?: number | null;
+}
+
+export interface SwagConfig {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string | null;
+  box_price: number;
+  min_items: number;
+  max_items?: number | null;
+  min_boxes: number;
+  max_boxes?: number | null;
+  hero_image_url?: string | null;
+  is_active: boolean;
+  sections: SwagSection[];
+}
+
+export type SwagConfigInput = {
+  name: string;
+  slug: string;
+  description?: string | null;
+  box_price: number;
+  min_items: number;
+  max_items?: number | null;
+  min_boxes: number;
+  max_boxes?: number | null;
+  is_active: boolean;
+  sections: Array<{
+    subcategory_id: number;
+    title_override?: string | null;
+    sort_order: number;
+    min_picks: number;
+    max_picks?: number | null;
+  }>;
 };
 
 // Helper: fetch a CSV endpoint with auth, trigger a browser download
@@ -402,7 +456,7 @@ export interface BusinessCategoryUpdate extends SeoFields {
 }
 // Brief reference used inside Product.business_categories.
 export interface BusinessCategoryRef { id: number; name: string; slug: string; }
-export interface Product extends SeoFields { id: number; name: string; slug?: string; description?: string; short_description?: string | null; branding_available?: boolean; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; design_upload_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; youtube_url?: string | null; back_print_price?: number | null; curved_edge_price?: number | null; hsn_code?: string | null; gst_rate?: number | null; brand?: string | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; is_deal_of_month?: boolean; is_express_bangalore?: boolean; is_enquiry_only?: boolean; start_strong_role?: string | null; price_range_max?: number | null; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; business_categories?: BusinessCategoryRef[]; additional_subcategories?: { id: number; name: string; slug: string; category_id: number }[]; is_addon?: boolean; addon_sort_order?: number; addon_trigger_category_id?: number | null; addon_cap_to_trigger?: boolean; }
+export interface Product extends SeoFields { id: number; name: string; slug?: string; description?: string; short_description?: string | null; branding_available?: boolean; specifications?: string; use_cases?: string; materials?: string; delivery_info?: string; design_upload_info?: string; min_order_qty?: number | null; moq_unit?: string | null; pricing_mode?: "per_unit" | "per_area" | string | null; variant_mode_override?: string | null; option_label?: string | null; variant_mode?: string; branding_info?: string; branding_methods?: string[]; size_chart_url?: string; youtube_url?: string | null; back_print_price?: number | null; curved_edge_price?: number | null; hsn_code?: string | null; gst_rate?: number | null; brand?: string | null; subcategory_id: number; base_price: number; compare_price?: number | null; is_active: boolean; has_variants: boolean; is_featured: boolean; is_new_arrival?: boolean; is_deal_of_month?: boolean; is_express_bangalore?: boolean; is_enquiry_only?: boolean; is_swag_only?: boolean; start_strong_role?: string | null; price_range_max?: number | null; images: ProductImage[]; variants: Variant[]; discount_slabs: DiscountSlab[]; business_categories?: BusinessCategoryRef[]; additional_subcategories?: { id: number; name: string; slug: string; category_id: number }[]; is_addon?: boolean; addon_sort_order?: number; addon_trigger_category_id?: number | null; addon_cap_to_trigger?: boolean; }
 export interface PageSeo extends SeoFields { id: number; route: string; label?: string | null; created_at?: string | null; updated_at?: string | null; }
 export interface PageSeoCreate extends SeoFields { route: string; label?: string | null; }
 export interface PageSeoUpdate extends SeoFields { label?: string | null; }
